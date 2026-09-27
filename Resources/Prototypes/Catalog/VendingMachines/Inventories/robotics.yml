@@ -21,3 +21,5 @@
     Crowbar: 2
   contrabandInventory:
     FoodBurgerRobot: 1
+  emaggedInventory:
+    BorgModuleSecurityFirearms: 1
