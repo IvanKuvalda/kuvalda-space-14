@@ -131,11 +131,20 @@ public sealed partial class SpeciesPrototype : IPrototype
     public int OldAge = 60;
 
     /// <summary>
-    ///     Characters cannot be older than this. Only used for restrictions...
-    ///     although imagine if ghosts could age people WYCI...
+    /// Characters cannot be older than this. Only used for restrictions...
+    /// although imagine if ghosts could age people WYCI...
     /// </summary>
     [DataField]
     public int MaxAge = 140;
+
+    // DS14-start: average species height, snapshotted onto a patient's medical record.
+    /// <summary>
+    /// Average height of the species in meters, used to fill in the height field on a patient's
+    /// medical record at creation time.
+    /// </summary>
+    [DataField]
+    public float Height = 1.8f;
+    // DS14-end
 }
 
 public enum SpeciesNaming : byte
