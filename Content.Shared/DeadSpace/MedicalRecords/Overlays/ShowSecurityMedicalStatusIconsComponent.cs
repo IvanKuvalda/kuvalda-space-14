@@ -5,8 +5,8 @@ using Robust.Shared.GameStates;
 namespace Content.Shared.DeadSpace.MedicalRecords.Overlays;
 
 /// <summary>
-/// Marker component granting HUD visibility of the subset of medical statuses that security has a
-/// reason to act on - "psychically unstable" and "needs forced treatment" - on a security HUD.
+/// Marker granting HUD visibility of the medical statuses security acts on - "psychically unstable"
+/// and "needs forced treatment". Worn by anything parenting <c>ShowSecurityIcons</c>.
 /// </summary>
 [RegisterComponent, NetworkedComponent]
 public sealed partial class ShowSecurityMedicalStatusIconsComponent : Component

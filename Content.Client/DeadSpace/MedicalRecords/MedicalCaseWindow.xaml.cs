@@ -7,13 +7,9 @@ using Robust.Client.UserInterface.XAML;
 
 namespace Content.Client.DeadSpace.MedicalRecords;
 
-/// <summary>
 /// Add/edit form for a single <see cref="MedicalCase"/>.
-///
-/// One window for both operations: an edit is an add with the previous values pre-filled, and the
-/// only difference the user sees is the title and the extra "reopen/close case" checkbox. A case's
-/// kind and author are deliberately not editable, and the server would ignore them if they were.
-/// </summary>
+/// 
+/// One window for both operations: an edit is an add with the previous values pre-filled.
 [GenerateTypedNameReferences]
 public sealed partial class MedicalCaseWindow : FancyWindow
 {
@@ -21,9 +17,6 @@ public sealed partial class MedicalCaseWindow : FancyWindow
 
     private int? _editingIndex;
 
-    /// <summary>
-    /// Raised on confirm. <c>index</c> is the case being edited, or null when adding a new one.
-    /// </summary>
     public event Action<int?, MedicalCaseDraft>? OnConfirmed;
 
     public MedicalCaseWindow(uint maxLength)
@@ -36,10 +29,6 @@ public sealed partial class MedicalCaseWindow : FancyWindow
         ConfirmButton.OnPressed += _ => Confirm();
     }
 
-    /// <summary>
-    /// Fills the form from an existing case. The open/closed checkbox only shows when editing - a
-    /// case being opened is open by definition, and the server hardcodes that on add.
-    /// </summary>
     public void SetExisting(int index, MedicalCase existing)
     {
         Title = Loc.GetString("medical-records-case-window-title-edit");
@@ -87,11 +76,6 @@ public sealed partial class MedicalCaseWindow : FancyWindow
         Close();
     }
 
-    /// <summary>
-    /// Caps a field at the console's configured length. <c>LineEdit</c> has no MaxLength of its
-    /// own in this engine, and the server truncates regardless - doing it here too just means the
-    /// user sees what will actually be stored.
-    /// </summary>
     private string Clip(string input)
     {
         var trimmed = input.Trim();
@@ -99,10 +83,6 @@ public sealed partial class MedicalCaseWindow : FancyWindow
         return trimmed.Length > _maxLength ? trimmed[..(int) _maxLength] : trimmed;
     }
 
-    /// <summary>
-    /// Splits the free-text specialist list on commas. Comma rather than semicolon because
-    /// "Ivanov, Petrov" is how people actually write a list of names.
-    /// </summary>
     private List<string> ParseSpecialists(string text)
     {
         var result = new List<string>();
@@ -121,14 +101,8 @@ public sealed partial class MedicalCaseWindow : FancyWindow
     }
 }
 
-/// <summary>
 /// Flat bag of case fields, so the window doesn't have to hand a half-mutated
 /// <see cref="MedicalCase"/> back to the caller.
-///
-/// <c>Open</c> rather than "closed" so it maps straight onto
-/// <see cref="MedicalCase.Open"/> and onto the server's edit handler - the window's checkbox is
-/// inverted into this on the way out, which is the single place the polarity is decided.
-/// </summary>
 public readonly record struct MedicalCaseDraft(
     string AdmissionState,
     string Diagnosis,

@@ -18,17 +18,9 @@ using Robust.Shared.Timing;
 
 namespace Content.Server.DeadSpace.MedicalRecords.Systems;
 
-/// <summary>
 /// Handles the "print" button on a single medical case: reads the health conclusion template, fills
 /// in the same base placeholders <c>PhotocopierSystem.PrintForm</c> uses (via the shared
 /// <see cref="PaperworkTextSubstitutions"/>) plus the per-case set, and spawns the paper directly at
-/// the console - no photocopier involved.
-///
-/// Printing is visibility-only (<see cref="MedicalRecordsConsoleSystem.CanPrint"/>): the case
-/// already exists, the paper is just its physical copy. That is deliberately wider than editing -
-/// you can print a case you are not allowed to change, which is the whole point of a paper
-/// medical file.
-/// </summary>
 public sealed class MedicalPrintingSystem : EntitySystem
 {
     [Dependency] private readonly SharedAudioSystem _audio = default!;
@@ -125,10 +117,6 @@ public sealed class MedicalPrintingSystem : EntitySystem
         _console.SetNextPrintTime(ent.Comp, _timing.CurTime + _console.GetPrintDelay(ent.Comp));
     }
 
-    /// <summary>
-    /// Localized species name, resolved through the species prototype's own <c>Name</c> - the species
-    /// ID is not a localization key, so printing it raw would put "SpeciesMobHuman" on the form.
-    /// </summary>
     private string GetSpeciesName(string species)
     {
         if (_prototype.TryIndex<SpeciesPrototype>(species, out var prototype))
@@ -137,11 +125,6 @@ public sealed class MedicalPrintingSystem : EntitySystem
         return Loc.GetString("generic-not-available-shorthand");
     }
 
-    /// <summary>
-    /// Localization key for a patient's sex. Not <c>sex-{value}</c> as that enum's generated
-    /// loc id would be - the medical console uses its own keys so the printed form and the window
-    /// stay in sync with each other regardless of how the enum is named.
-    /// </summary>
     private static string SexKey(Sex sex) => sex switch
     {
         Sex.Male => "medical-records-sex-male",

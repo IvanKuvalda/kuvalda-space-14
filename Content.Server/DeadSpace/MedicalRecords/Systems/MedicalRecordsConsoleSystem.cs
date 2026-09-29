@@ -24,13 +24,9 @@ using Robust.Shared.Timing;
 
 namespace Content.Server.DeadSpace.MedicalRecords.Systems;
 
-/// <summary>
 /// Handles all UI and permission logic for the Medical Records console.
-///
-/// Nothing about a patient's record is trusted from the client: the selection, the filter, every
-/// free-text field and every permission flag is re-derived here on each action, against the record
-/// key resolved from the console's own state and the acting mob's own ID card.
-/// </summary>
+/// 
+/// Nothing about a patient's record is trusted from the client; the server re-validates every action on receipt.
 public sealed class MedicalRecordsConsoleSystem : SharedMedicalRecordsConsoleSystem
 {
     [Dependency] private readonly AccessReaderSystem _access = default!;
@@ -270,14 +266,6 @@ public sealed class MedicalRecordsConsoleSystem : SharedMedicalRecordsConsoleSys
 
     #region Validation
 
-    /// <summary>
-    /// Trims, null-guards and length-caps every free-text field on a case, and enforces that a
-    /// diagnosis actually exists - a case with no diagnosis is a line of noise on someone's
-    /// permanent medical record, so it is rejected outright rather than stored blank.
-    ///
-    /// Runs on the server on every write: the client's input fields are a convenience, not a
-    /// contract.
-    /// </summary>
     private static bool TrySanitizeCase(
         MedicalRecordsConsoleComponent console,
         string? admissionState,
@@ -337,11 +325,6 @@ public sealed class MedicalRecordsConsoleSystem : SharedMedicalRecordsConsoleSys
 
     #region Permissions
 
-    /// <summary>
-    /// Boilerplate every action uses: verifies the console's own AccessReader and resolves the
-    /// active key. Does not check anything about the <em>target</em> - see
-    /// <see cref="CanEdit"/> / <see cref="CanDelete"/> for that.
-    /// </summary>
     private bool CheckSelected(Entity<MedicalRecordsConsoleComponent> ent, EntityUid user,
         [NotNullWhen(true)] out EntityUid? mob, [NotNullWhen(true)] out StationRecordKey? key)
     {
@@ -365,19 +348,9 @@ public sealed class MedicalRecordsConsoleSystem : SharedMedicalRecordsConsoleSys
         return true;
     }
 
-    /// <summary>
-    /// Whether the actor may add/edit cases and change a patient's status. The medical records
-    /// console is not department-scoped - a patient's blood does not care which ward they are in -
-    /// so this is simply "may open the console at all", i.e. the console's own AccessReader.
-    /// </summary>
     private bool CanEdit(EntityUid user, Entity<MedicalRecordsConsoleComponent> ent) =>
         _access.IsAllowed(user, ent);
 
-    /// <summary>
-    /// Whether the actor may delete a case. Requires the console's base access
-    /// <b>and</b> <see cref="MedicalRecordsConsoleComponent.DeleteAccess"/> - the head of Medical,
-    /// since an auto-populated deviation deleted by mistake cannot be restored until the next round.
-    /// </summary>
     private bool CanDelete(EntityUid user, Entity<MedicalRecordsConsoleComponent> ent) =>
         CanEdit(user, ent) && HasAccessTag(user, ent.Comp.DeleteAccess);
 
@@ -410,11 +383,6 @@ public sealed class MedicalRecordsConsoleSystem : SharedMedicalRecordsConsoleSys
 
     #region State
 
-    /// <summary>
-    /// Refresh triggered by something other than a direct BUI message (a record changed somewhere
-    /// on the station) - there's no actor in hand, so fall back to whoever the console's
-    /// <c>ActivatableUI</c> currently considers its single user, if anyone.
-    /// </summary>
     private void UpdateUserInterface(Entity<MedicalRecordsConsoleComponent> ent)
     {
         var actor = TryComp<ActivatableUIComponent>(ent, out var activatable) ? activatable.CurrentSingleUser : null;
@@ -518,32 +486,15 @@ public sealed class MedicalRecordsConsoleSystem : SharedMedicalRecordsConsoleSys
         [NotNullWhen(true)] out EntityUid? mob, [NotNullWhen(true)] out StationRecordKey? key) =>
         CheckSelected(ent, user, out mob, out key);
 
-    /// <summary>
-    /// Printing is visibility-only: the case already exists, the paper is just its physical copy, so
-    /// no edit rights and no delete rights are involved.
-    /// </summary>
     public bool CanPrint(EntityUid user, Entity<MedicalRecordsConsoleComponent> ent) => CanEdit(user, ent);
 
-    /// <summary>
-    /// When the console is next allowed to print, used as a spam brake.
-    /// </summary>
     public TimeSpan GetNextPrintTime(MedicalRecordsConsoleComponent console) => console.NextPrintTime;
 
-    /// <summary>
-    /// The paperwork prototype a printed case is rendered from, and the paper it comes out as.
-    /// </summary>
     public ProtoId<PaperworkFormPrototype> GetConclusionForm(MedicalRecordsConsoleComponent console) =>
         console.ConclusionForm;
 
-    /// <summary>
-    /// How long after a print the console will refuse another one.
-    /// </summary>
     public TimeSpan GetPrintDelay(MedicalRecordsConsoleComponent console) => console.PrintDelay;
 
-    /// <summary>
-    /// Played at the console when a case is printed, so it audibly matches the keyboard the rest of
-    /// the console already makes.
-    /// </summary>
     public SoundSpecifier GetPrintSound(MedicalRecordsConsoleComponent console) => console.PrintSound;
 
     public void SetNextPrintTime(MedicalRecordsConsoleComponent console, TimeSpan time) =>

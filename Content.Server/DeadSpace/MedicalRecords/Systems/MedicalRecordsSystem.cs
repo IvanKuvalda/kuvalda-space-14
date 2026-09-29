@@ -14,11 +14,9 @@ using Robust.Shared.Timing;
 
 namespace Content.Server.DeadSpace.MedicalRecords.Systems;
 
-/// <summary>
 /// Owns the <see cref="MedicalRecord"/> riding alongside every crewmember's
 /// <c>GeneralStationRecord</c>, and the history-editing logic the console system calls into. No
 /// permission checking happens here - <c>MedicalRecordsConsoleSystem</c> checks every action first.
-/// </summary>
 public sealed class MedicalRecordsSystem : SharedMedicalRecordsSystem
 {
     [Dependency] private readonly ILocalizationManager _loc = default!;
@@ -52,9 +50,6 @@ public sealed class MedicalRecordsSystem : SharedMedicalRecordsSystem
         _records.Synchronize(ev.Key);
     }
 
-    /// <summary>
-    /// Average height in meters for a species, from <see cref="SpeciesPrototype.Height"/>.
-    /// </summary>
     public float GetHeight(ProtoId<SpeciesPrototype> species)
     {
         if (_prototypeManager.TryIndex(species, out var prototype))
@@ -63,11 +58,6 @@ public sealed class MedicalRecordsSystem : SharedMedicalRecordsSystem
         return 1.8f;
     }
 
-    /// <summary>
-    /// Turns the player's chosen traits into the innate deviations the patient is born with. Traits
-    /// without a <c>Category</c> are species baseline rather than something the player rolled, so
-    /// they are not recorded.
-    /// </summary>
     private List<MedicalCase> BuildDeviations(HumanoidCharacterProfile profile)
     {
         var deviations = new List<MedicalCase>();
@@ -94,20 +84,6 @@ public sealed class MedicalRecordsSystem : SharedMedicalRecordsSystem
         return deviations;
     }
 
-    /// <summary>
-    /// Appends a case filed by a member of staff. Timestamps and attributes it to the author, then
-    /// re-derives the patient's status.
-    /// </summary>
-    /// <param name="key">Record of the patient being treated.</param>
-    /// <param name="admissionState">Condition on admission.</param>
-    /// <param name="diagnosis">Diagnosis. Mandatory - a case with no diagnosis is not a record.</param>
-    /// <param name="treatment">Treatment administered so far.</param>
-    /// <param name="needsContinuedTreatment">Whether the patient needs ongoing care.</param>
-    /// <param name="needsForcedTreatment">Whether the patient has to be treated without consent.</param>
-    /// <param name="specialists">Names of the specialists who treated the case.</param>
-    /// <param name="recommendations">Recommendations left behind.</param>
-    /// <param name="dischargeState">Condition at discharge.</param>
-    /// <param name="authorName">Name of whoever filed the case.</param>
     public bool TryAddCase(
         StationRecordKey key,
         string admissionState,
@@ -143,9 +119,6 @@ public sealed class MedicalRecordsSystem : SharedMedicalRecordsSystem
         return true;
     }
 
-    /// <summary>
-    /// Overwrites an existing case in place, leaving its kind and author alone.
-    /// </summary>
     public bool TryEditCase(
         StationRecordKey key,
         int index,
@@ -179,9 +152,6 @@ public sealed class MedicalRecordsSystem : SharedMedicalRecordsSystem
         return true;
     }
 
-    /// <summary>
-    /// Removes a case outright. The console system has already checked the actor's access.
-    /// </summary>
     public bool TryDeleteCase(StationRecordKey key, int index)
     {
         if (!_records.TryGetRecord<MedicalRecord>(key, out var record))
@@ -196,11 +166,6 @@ public sealed class MedicalRecordsSystem : SharedMedicalRecordsSystem
         return true;
     }
 
-    /// <summary>
-    /// Sets the patient status. The doctor's choice is authoritative and is deliberately not run
-    /// through <see cref="RecalculateStatus"/> - that would immediately overwrite "on treatment"
-    /// whenever no open case demands follow-up.
-    /// </summary>
     public bool TryChangeStatus(StationRecordKey key, MedicalStatus status)
     {
         if (!_records.TryGetRecord<MedicalRecord>(key, out var record))
@@ -225,12 +190,6 @@ public sealed class MedicalRecordsSystem : SharedMedicalRecordsSystem
         return false;
     }
 
-    /// <summary>
-    /// Pulls the status back in line with the history, after the history itself changed: an open
-    /// continued-treatment case puts a patient on treatment, losing the last one moves them to
-    /// completed treatment. A status set by hand is left alone - see
-    /// <see cref="MedicalRecord.StatusManuallySet"/>.
-    /// </summary>
     private MedicalStatus RecalculateStatus(MedicalRecord record)
     {
         var needsTreatment = record.History.Exists(medicalCase => medicalCase.Open && medicalCase.NeedsContinuedTreatment);
@@ -251,9 +210,6 @@ public sealed class MedicalRecordsSystem : SharedMedicalRecordsSystem
         return record.Status;
     }
 
-    /// <summary>
-    /// Synchronizes the record and refreshes the patient's HUD icons.
-    /// </summary>
     private void Finalize(StationRecordKey key, MedicalRecord record, bool recalculate = true)
     {
         if (recalculate)

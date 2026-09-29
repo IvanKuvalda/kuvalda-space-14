@@ -16,14 +16,9 @@ using Robust.Shared.Utility;
 
 namespace Content.Client.DeadSpace.MedicalRecords;
 
-/// <summary>
 /// Medical Records console window - structure mirrors <c>PersonnelRecordsConsoleWindow</c>.
-///
-/// Every button's availability comes from the server-computed flags in
-/// <see cref="MedicalRecordsConsoleState"/> rather than from any client-side access check: who may
-/// delete a case depends on the ID card in the reader's hand, which only the server can resolve
-/// safely, so there is nothing meaningful for the client to decide on its own.
-/// </summary>
+/// 
+/// Button availability comes from the server-computed flags in <c>MedicalRecordsConsoleState</c>.
 [GenerateTypedNameReferences]
 public sealed partial class MedicalRecordsConsoleWindow : FancyWindow
 {
@@ -356,11 +351,6 @@ public sealed partial class MedicalRecordsConsoleWindow : FancyWindow
         _ => "medical-records-sex-unsexed",
     };
 
-    /// <summary>
-    /// Localized species name. Goes through the prototype's own <c>Name</c> rather than using the
-    /// species ID as a loc key - a species prototype's ID is not guaranteed to be a valid
-    /// localization key, and this is what <c>GeneralRecord</c> does too.
-    /// </summary>
     private string GetSpeciesName(string species)
     {
         if (_proto.TryIndex<SpeciesPrototype>(species, out var prototype))

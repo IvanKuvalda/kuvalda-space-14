@@ -10,39 +10,20 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Shared.DeadSpace.MedicalRecords.Systems;
 
-/// <summary>
 /// Shared base for the medical records record-mutation system, mirroring
 /// <c>Content.Shared.CriminalRecords.Systems.SharedCriminalRecordsSystem</c>.
-///
-/// Record creation and history editing live in
-/// <c>Content.Server.DeadSpace.MedicalRecords.Systems.MedicalRecordsSystem</c>. This shared base only owns
-/// the two things that genuinely have to run on both sides: deciding which icons a record implies,
-/// and syncing that onto the mob so the client HUD can render it.
-/// </summary>
 public abstract class SharedMedicalRecordsSystem : EntitySystem
 {
     [Dependency] private readonly ILogManager _logManager = default!;
 
     private ISawmill _sawmill = default!;
 
-    /// <summary>
-    /// Icon shown for <see cref="MedicalStatus.OnTreatment"/>. Medical HUD only.
-    /// </summary>
     public const string IconOnTreatment = "MedicalStatusIconOnTreatment";
 
-    /// <summary>
-    /// Icon shown for <see cref="MedicalStatus.PsychUnstable"/>. Medical and security HUDs.
-    /// </summary>
     public const string IconPsychUnstable = "MedicalStatusIconPsychUnstable";
 
-    /// <summary>
-    /// Icon shown for <see cref="MedicalStatus.CompletedTreatment"/>. Medical HUD only.
-    /// </summary>
     public const string IconCompletedTreatment = "MedicalStatusIconCompletedTreatment";
 
-    /// <summary>
-    /// Icon shown when the patient is flagged for forced treatment. Medical and security HUDs.
-    /// </summary>
     public const string IconForcedTreatment = "MedicalStatusIconForcedTreatment";
 
     public override void Initialize()
@@ -52,16 +33,6 @@ public abstract class SharedMedicalRecordsSystem : EntitySystem
         _sawmill = _logManager.GetSawmill("medical-records");
     }
 
-    /// <summary>
-    /// Whether a patient needs to be forcibly treated, which is the condition security acts on.
-    ///
-    /// True either because the patient is flagged as <see cref="MedicalStatus.PsychUnstable"/> -
-    /// an unstable patient cannot meaningfully consent to their own psychiatric treatment - or
-    /// because some case in their history explicitly carries
-    /// <see cref="MedicalCase.NeedsForcedTreatment"/>. Neither condition requires the other to be
-    /// checked, so a physically sick but cooperative patient can be flagged without being called
-    /// unstable, and vice versa.
-    /// </summary>
     public static bool RequiresForcedTreatment(MedicalRecord? record)
     {
         if (record is null)
@@ -73,11 +44,6 @@ public abstract class SharedMedicalRecordsSystem : EntitySystem
         return record.History.Exists(medicalCase => medicalCase.NeedsForcedTreatment);
     }
 
-    /// <summary>
-    /// Every icon implied by a record, in display order. Empty for
-    /// <see cref="MedicalStatus.None"/> with no forced-treatment case, which is what makes the
-    /// component removable entirely rather than showing a blank slot.
-    /// </summary>
     public static List<ProtoId<MedicalStatusIconPrototype>> GetStatusIcons(MedicalRecord record)
     {
         var icons = new List<ProtoId<MedicalStatusIconPrototype>>();
@@ -101,10 +67,6 @@ public abstract class SharedMedicalRecordsSystem : EntitySystem
         return icons;
     }
 
-    /// <summary>
-    /// Recomputes and applies the icon list for a record onto the character currently using that
-    /// name, or removes the component entirely if the record implies no icons.
-    /// </summary>
     public void SetMedicalIcons(string name, MedicalRecord? record)
     {
         var query = EntityQueryEnumerator<IdentityComponent>();
@@ -126,9 +88,6 @@ public abstract class SharedMedicalRecordsSystem : EntitySystem
             _sawmill.Warning($"SetMedicalIcons: no IdentityComponent entity matched record name '{name}' - status icons were not attached to anyone");
     }
 
-    /// <summary>
-    /// Applies (or clears) the icon component on a single entity.
-    /// </summary>
     public void ApplyMedicalIcons(EntityUid characterUid, MedicalRecord? record)
     {
         var icons = record is null ? new List<ProtoId<MedicalStatusIconPrototype>>() : GetStatusIcons(record);

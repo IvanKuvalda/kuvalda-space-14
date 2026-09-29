@@ -8,13 +8,8 @@ using Robust.Shared.GameObjects;
 
 namespace Content.Shared.DeadSpace.MedicalRecords.Systems;
 
-/// <summary>
 /// Shared base for the Medical Records console system, mirroring
 /// <c>Content.Shared.CriminalRecords.Systems.SharedCriminalRecordsConsoleSystem</c>.
-///
-/// Concrete BUI handling and permission checks live in
-/// <c>Content.Server.DeadSpace.MedicalRecords.Systems.MedicalRecordsConsoleSystem</c>.
-/// </summary>
 public abstract class SharedMedicalRecordsConsoleSystem : EntitySystem
 {
     [Dependency] private readonly SharedMedicalRecordsSystem _medicalRecords = default!;
@@ -44,10 +39,6 @@ public abstract class SharedMedicalRecordsConsoleSystem : EntitySystem
         CheckNewIdentity(ent);
     }
 
-    /// <summary>
-    /// Gives the entity the medical status icons belonging to the record matching its current
-    /// visible name, or strips them if there is no such record.
-    /// </summary>
     public void CheckNewIdentity(EntityUid uid)
     {
         var name = Identity.Name(uid, EntityManager);
