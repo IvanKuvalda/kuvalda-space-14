@@ -82,8 +82,6 @@ public abstract class SharedMedicalRecordsSystem : EntitySystem
 
             matched = true;
             ApplyMedicalIcons(uid, record);
-            var iconList = record is null ? "<no record>" : string.Join(", ", GetStatusIcons(record));
-            _sawmill.Info($"SetMedicalIcons: record '{name}' -> {uid} gets [{iconList}]");
         }
 
         if (!matched)

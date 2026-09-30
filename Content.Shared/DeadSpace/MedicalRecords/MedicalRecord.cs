@@ -7,19 +7,13 @@ namespace Content.Shared.DeadSpace.MedicalRecords;
 
 /// <summary>
 /// Medical record of a crewmember, sitting alongside <c>GeneralStationRecord</c> under the same
-/// <c>StationRecordKey</c>. Species, age, gender and DNA stay in the general record - only sex and
-/// <summary>
-/// height live here.
-/// </summary>
+/// <c>StationRecordKey</c>. Species, age, gender and DNA stay in the general record.
 /// </summary>
 [Serializable, NetSerializable, DataRecord]
 public sealed partial record MedicalRecord
 {
     [DataField]
     public Sex Sex = Sex.Male;
-
-    [DataField]
-    public float Height = 1.8f;
 
     [DataField]
     public MedicalStatus Status = MedicalStatus.None;

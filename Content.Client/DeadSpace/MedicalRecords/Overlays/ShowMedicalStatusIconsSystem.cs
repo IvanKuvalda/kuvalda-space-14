@@ -5,7 +5,9 @@ using Content.Shared.DeadSpace.MedicalRecords.Components;
 using Content.Shared.DeadSpace.MedicalRecords.Overlays;
 using Content.Shared.StatusIcon;
 using Content.Shared.StatusIcon.Components;
+using Robust.Shared.Log;
 using Robust.Shared.Prototypes;
+using Robust.Shared.Timing;
 
 namespace Content.Client.DeadSpace.MedicalRecords.Overlays;
 
@@ -20,15 +22,30 @@ public sealed class ShowMedicalStatusIconsSystem : EquipmentHudSystem<ShowMedica
 
     [Dependency] private readonly ShowSecurityMedicalStatusIconsSystem _security = default!;
 
+    [Dependency] private readonly ILogManager _logManager = default!;
+
+    [Dependency] private readonly IGameTiming _timing = default!;
+
+    private ISawmill _sawmill = default!;
+    private TimeSpan _nextGateLog;
+
     public override void Initialize()
     {
         base.Initialize();
+
+        _sawmill = _logManager.GetSawmill("medical-records-icons");
 
         SubscribeLocalEvent<MedicalRecordComponent, GetStatusIconsEvent>(OnGetStatusIcons);
     }
 
     private void OnGetStatusIcons(Entity<MedicalRecordComponent> ent, ref GetStatusIconsEvent ev)
     {
+        if (ent.Comp.Icons.Count > 0 && _timing.CurTime >= _nextGateLog)
+        {
+            _nextGateLog = _timing.CurTime + TimeSpan.FromSeconds(2);
+            _sawmill.Info($"GATE: hud={IsActive} sec={_security.IsActive} icons=[{string.Join(", ", ent.Comp.Icons)}]");
+        }
+
         if (IsActive)
         {
             foreach (var icon in ent.Comp.Icons)

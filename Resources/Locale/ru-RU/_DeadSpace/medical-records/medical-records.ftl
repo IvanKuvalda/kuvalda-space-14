@@ -23,9 +23,7 @@ medical-records-console-print-case = Печать
 ### Медкарта: карточка пациента
 
 medical-records-console-record-sex = Пол: { $sex }
-medical-records-console-record-height = Рост: { $height }
 medical-records-console-record-dna = ДНК: { $dna }
-medical-records-height-unit = м
 medical-records-sex-male = мужской
 medical-records-sex-female = женский
 medical-records-sex-unsexed = бесполый

@@ -90,7 +90,6 @@ public sealed class MedicalPrintingSystem : EntitySystem
         text = text.Replace("{{PATIENT.NAME}}", general.Name);
         text = text.Replace("{{PATIENT.SPECIES}}", GetSpeciesName(general.Species));
         text = text.Replace("{{PATIENT.SEX}}", Loc.GetString(SexKey(record.Sex)));
-        text = text.Replace("{{PATIENT.HEIGHT}}", FormatHeight(record.Height));
         text = text.Replace("{{PATIENT.DNA}}", general.DNA ?? Loc.GetString("medical-records-print-no-dna"));
 
         text = text.Replace("{{CASE.KIND}}", Loc.GetString(medicalCase.Kind == MedicalCaseKind.Deviation
@@ -138,9 +137,6 @@ public sealed class MedicalPrintingSystem : EntitySystem
 
     // Not static, unlike SexKey: Loc is an instance member of EntitySystem, so anything that
     // resolves a localization id has to be reached through `this`.
-
-    private string FormatHeight(float height) => height.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " " + Loc.GetString("medical-records-height-unit");
-
     private string FormatCaseTime(TimeSpan time) => time <= TimeSpan.Zero
         ? Loc.GetString("medical-records-case-time-at-birth")
         : time.ToString(@"hh\:mm\:ss", System.Globalization.CultureInfo.InvariantCulture);

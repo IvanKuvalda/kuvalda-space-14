@@ -65,7 +65,6 @@
 
                 <!-- Medical specifics, sourced from the medical record -->
                 <Label Name="PatientSex" StyleClasses="DeadSpaceSubtitle" />
-                <Label Name="PatientHeight" StyleClasses="DeadSpaceSubtitle" />
                 <Label Name="PatientDna" StyleClasses="DeadSpaceSubtitle" />
 
                 <BoxContainer Orientation="Horizontal" Margin="0 5 0 5">

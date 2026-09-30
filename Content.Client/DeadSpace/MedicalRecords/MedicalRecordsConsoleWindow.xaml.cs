@@ -231,7 +231,6 @@ public sealed partial class MedicalRecordsConsoleWindow : FancyWindow
         PatientSpecies.Text = Loc.GetString("general-station-record-console-record-species", ("species", GetSpeciesName(stationRecord.Species)));
 
         PatientSex.Text = Loc.GetString("medical-records-console-record-sex", ("sex", Loc.GetString(SexKey(medicalRecord.Sex))));
-        PatientHeight.Text = Loc.GetString("medical-records-console-record-height", ("height", FormatHeight(medicalRecord.Height)));
         PatientDna.Text = Loc.GetString("medical-records-console-record-dna", ("dna", stationRecord.DNA ?? na));
 
         PatientStatus.Text = Loc.GetString($"medical-records-status-{medicalRecord.Status.ToString().ToLower()}");
@@ -357,9 +356,6 @@ public sealed partial class MedicalRecordsConsoleWindow : FancyWindow
 
         return Loc.GetString("generic-not-available-shorthand");
     }
-
-    private static string FormatHeight(float height) =>
-        height.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " " + Loc.GetString("medical-records-height-unit");
 
     private string GetTypeFilterLocals(StationRecordFilterType type) =>
         Loc.GetString($"medical-records-{type.ToString().ToLower()}-filter");

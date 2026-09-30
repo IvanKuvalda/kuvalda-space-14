@@ -112,6 +112,7 @@
   - type: ShowJobIcons
   # DS14-start
   - type: ShowPersonnelRecordIcons
+  - type: ShowMedicalStatusIcons # DS14: command staff oversee the medbay, so the full status set
   # DS14-end
   - type: Tag
     tags:

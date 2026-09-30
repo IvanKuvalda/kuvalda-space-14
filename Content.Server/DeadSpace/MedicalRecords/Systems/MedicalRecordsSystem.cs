@@ -44,20 +44,11 @@ public sealed class MedicalRecordsSystem : SharedMedicalRecordsSystem
         var record = new MedicalRecord
         {
             Sex = ev.Profile.Sex,
-            Height = GetHeight(ev.Profile.Species),
             History = BuildDeviations(ev.Profile),
         };
 
         _records.AddRecordEntry(ev.Key, record);
         _records.Synchronize(ev.Key);
-    }
-
-    public float GetHeight(ProtoId<SpeciesPrototype> species)
-    {
-        if (_prototypeManager.TryIndex(species, out var prototype))
-            return prototype.Height;
-
-        return 1.8f;
     }
 
     private List<MedicalCase> BuildDeviations(HumanoidCharacterProfile profile)
