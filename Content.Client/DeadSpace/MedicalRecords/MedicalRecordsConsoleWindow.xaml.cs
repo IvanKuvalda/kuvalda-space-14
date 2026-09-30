@@ -16,9 +16,13 @@ using Robust.Shared.Utility;
 
 namespace Content.Client.DeadSpace.MedicalRecords;
 
+/// <summary>
 /// Medical Records console window - structure mirrors <c>PersonnelRecordsConsoleWindow</c>.
+/// </summary>
 /// 
+/// <summary>
 /// Button availability comes from the server-computed flags in <c>MedicalRecordsConsoleState</c>.
+/// </summary>
 [GenerateTypedNameReferences]
 public sealed partial class MedicalRecordsConsoleWindow : FancyWindow
 {
@@ -302,16 +306,11 @@ public sealed partial class MedicalRecordsConsoleWindow : FancyWindow
 
     private void UpdateCaseButtons()
     {
-        // Disabling rather than hiding: the buttons are only ever meaningful with a case selected,
-        // and leaving them visible-but-greyed tells the user the history is read-only for them
-        // instead of quietly omitting functionality. Delete is the exception - it is gated on the
-        // head of Medical, and a lower-privileged user should not be led to expect it.
         var hasSelection = _selectedCase != null;
 
         EditCaseButton.Disabled = !_canEdit || _selectedRecord == null || !hasSelection;
         PrintCaseButton.Disabled = !_canPrint || !hasSelection;
         DeleteCaseButton.Disabled = !_canDelete || _selectedRecord == null || !hasSelection;
-        DeleteCaseButton.Visible = _canDelete || _selectedRecord == null;
     }
 
     private void OpenCaseWindow(int? index)

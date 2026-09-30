@@ -18,9 +18,13 @@ using Robust.Shared.Timing;
 
 namespace Content.Server.DeadSpace.MedicalRecords.Systems;
 
-/// Handles the "print" button on a single medical case: reads the health conclusion template, fills
-/// in the same base placeholders <c>PhotocopierSystem.PrintForm</c> uses (via the shared
-/// <see cref="PaperworkTextSubstitutions"/>) plus the per-case set, and spawns the paper directly at
+/// <summary>
+/// Handles the "print" button on a single medical case: reads the health conclusion template,
+/// fills the shared <c>PaperworkTextSubstitutions</c> plus the per-case values, and spawns the
+/// <summary>
+/// paper at the console.
+/// </summary>
+/// </summary>
 public sealed class MedicalPrintingSystem : EntitySystem
 {
     [Dependency] private readonly SharedAudioSystem _audio = default!;

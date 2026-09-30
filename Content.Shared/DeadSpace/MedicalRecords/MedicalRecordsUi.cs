@@ -11,8 +11,10 @@ public enum MedicalRecordsConsoleKey : byte
     Key
 }
 
+/// <summary>
 /// Medical Records console state. Selecting and filtering reuse <see cref="SelectStationRecord"/>
 /// and <see cref="SetStationRecordFilter"/>, the same messages the other records consoles use.
+/// </summary>
 [Serializable, NetSerializable]
 public sealed class MedicalRecordsConsoleState : BoundUserInterfaceState
 {
@@ -45,8 +47,10 @@ public sealed class MedicalRecordsConsoleState : BoundUserInterfaceState
     public bool IsEmpty() => SelectedKey == null && StationRecord == null && MedicalRecord == null && RecordListing == null;
 }
 
+/// <summary>
 /// Sets the patient-status filter for the crew listing (mirrors
 /// <c>PersonnelRecordSetStatusFilter</c>). <see cref="MedicalStatus.None"/> clears the filter.
+/// </summary>
 [Serializable, NetSerializable]
 public sealed class MedicalRecordSetStatusFilter : BoundUserInterfaceMessage
 {
@@ -58,8 +62,10 @@ public sealed class MedicalRecordSetStatusFilter : BoundUserInterfaceMessage
     }
 }
 
+/// <summary>
 /// Sets the selected patient's status. The server records the choice as the doctor's own and lets
 /// it stand, rather than second-guessing it against the history.
+/// </summary>
 [Serializable, NetSerializable]
 public sealed class MedicalRecordChangeStatus : BoundUserInterfaceMessage
 {
@@ -71,8 +77,10 @@ public sealed class MedicalRecordChangeStatus : BoundUserInterfaceMessage
     }
 }
 
+/// <summary>
 /// Appends a new case to the selected patient's history. The server re-validates every field and
 /// owns <see cref="MedicalCase.AddTime"/> and <see cref="MedicalCase.AuthorName"/>.
+/// </summary>
 [Serializable, NetSerializable]
 public sealed class MedicalRecordAddCase : BoundUserInterfaceMessage
 {
@@ -106,8 +114,10 @@ public sealed class MedicalRecordAddCase : BoundUserInterfaceMessage
     }
 }
 
+/// <summary>
 /// Overwrites the case at <see cref="Index"/>. Same field set as
 /// <see cref="MedicalRecordAddCase"/>, minus kind and author, which an edit never rewrites.
+/// </summary>
 [Serializable, NetSerializable]
 public sealed class MedicalRecordEditCase : BoundUserInterfaceMessage
 {
@@ -147,8 +157,10 @@ public sealed class MedicalRecordEditCase : BoundUserInterfaceMessage
     }
 }
 
+/// <summary>
 /// Removes the case at <see cref="Index"/>. Rejected unless the actor holds the head of Medical's
 /// access level - see <see cref="MedicalRecordsConsoleState.CanDelete"/>.
+/// </summary>
 [Serializable, NetSerializable]
 public sealed class MedicalRecordDeleteCase : BoundUserInterfaceMessage
 {
@@ -160,8 +172,10 @@ public sealed class MedicalRecordDeleteCase : BoundUserInterfaceMessage
     }
 }
 
+/// <summary>
 /// Prints a health conclusion for a single case. Separate from
 /// <see cref="MedicalRecordEditCase"/> so printing a closed case months later needs no edit rights.
+/// </summary>
 [Serializable, NetSerializable]
 public sealed class MedicalRecordPrintCase : BoundUserInterfaceMessage
 {

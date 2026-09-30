@@ -10,8 +10,10 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Shared.DeadSpace.MedicalRecords.Systems;
 
+/// <summary>
 /// Shared base for the medical records record-mutation system, mirroring
 /// <c>Content.Shared.CriminalRecords.Systems.SharedCriminalRecordsSystem</c>.
+/// </summary>
 public abstract class SharedMedicalRecordsSystem : EntitySystem
 {
     [Dependency] private readonly ILogManager _logManager = default!;

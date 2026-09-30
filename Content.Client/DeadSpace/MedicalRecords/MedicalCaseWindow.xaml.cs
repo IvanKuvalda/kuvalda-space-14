@@ -7,9 +7,13 @@ using Robust.Client.UserInterface.XAML;
 
 namespace Content.Client.DeadSpace.MedicalRecords;
 
+/// <summary>
 /// Add/edit form for a single <see cref="MedicalCase"/>.
+/// </summary>
 /// 
+/// <summary>
 /// One window for both operations: an edit is an add with the previous values pre-filled.
+/// </summary>
 [GenerateTypedNameReferences]
 public sealed partial class MedicalCaseWindow : FancyWindow
 {
@@ -101,8 +105,10 @@ public sealed partial class MedicalCaseWindow : FancyWindow
     }
 }
 
+/// <summary>
 /// Flat bag of case fields, so the window doesn't have to hand a half-mutated
 /// <see cref="MedicalCase"/> back to the caller.
+/// </summary>
 public readonly record struct MedicalCaseDraft(
     string AdmissionState,
     string Diagnosis,

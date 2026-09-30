@@ -24,16 +24,19 @@ using Robust.Shared.Timing;
 
 namespace Content.Server.DeadSpace.MedicalRecords.Systems;
 
+/// <summary>
 /// Handles all UI and permission logic for the Medical Records console.
+/// </summary>
 /// 
+/// <summary>
 /// Nothing about a patient's record is trusted from the client; the server re-validates every action on receipt.
+/// </summary>
 public sealed class MedicalRecordsConsoleSystem : SharedMedicalRecordsConsoleSystem
 {
     [Dependency] private readonly AccessReaderSystem _access = default!;
     [Dependency] private readonly ISharedAdminLogManager _adminLogger = default!;
     [Dependency] private readonly MedicalRecordsSystem _medicalRecords = default!;
     [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
     [Dependency] private readonly SharedIdCardSystem _idCard = default!;
     [Dependency] private readonly StationRecordsSystem _records = default!;
     [Dependency] private readonly StationSystem _station = default!;

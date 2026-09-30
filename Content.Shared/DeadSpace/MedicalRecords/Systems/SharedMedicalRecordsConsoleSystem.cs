@@ -8,8 +8,10 @@ using Robust.Shared.GameObjects;
 
 namespace Content.Shared.DeadSpace.MedicalRecords.Systems;
 
+/// <summary>
 /// Shared base for the Medical Records console system, mirroring
 /// <c>Content.Shared.CriminalRecords.Systems.SharedCriminalRecordsConsoleSystem</c>.
+/// </summary>
 public abstract class SharedMedicalRecordsConsoleSystem : EntitySystem
 {
     [Dependency] private readonly SharedMedicalRecordsSystem _medicalRecords = default!;

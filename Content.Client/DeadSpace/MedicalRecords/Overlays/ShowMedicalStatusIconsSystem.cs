@@ -9,9 +9,11 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Client.DeadSpace.MedicalRecords.Overlays;
 
+/// <summary>
 /// Renders the medical status set on the HUD: the full set on a medical HUD, and the
 /// security-visible subset on a security-only HUD. Mirrors
-/// <c>Content.Client.DeadSpace.PersonnelRecords.Overlays.ShowPersonnelRecordIconsSystem</c>, except
+/// <c>Content.Client.DeadSpace.PersonnelRecords.Overlays.ShowPersonnelRecordIconsSystem</c>.
+/// </summary>
 public sealed class ShowMedicalStatusIconsSystem : EquipmentHudSystem<ShowMedicalStatusIconsComponent>
 {
     [Dependency] private readonly IPrototypeManager _prototype = default!;

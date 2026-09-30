@@ -14,9 +14,11 @@ using Robust.Shared.Timing;
 
 namespace Content.Server.DeadSpace.MedicalRecords.Systems;
 
+/// <summary>
 /// Owns the <see cref="MedicalRecord"/> riding alongside every crewmember's
 /// <c>GeneralStationRecord</c>, and the history-editing logic the console system calls into. No
 /// permission checking happens here - <c>MedicalRecordsConsoleSystem</c> checks every action first.
+/// </summary>
 public sealed class MedicalRecordsSystem : SharedMedicalRecordsSystem
 {
     [Dependency] private readonly ILocalizationManager _loc = default!;

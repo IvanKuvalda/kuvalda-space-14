@@ -5,9 +5,13 @@ using Robust.Shared.Serialization;
 
 namespace Content.Shared.DeadSpace.MedicalRecords;
 
+/// <summary>
 /// Medical record of a crewmember, sitting alongside <c>GeneralStationRecord</c> under the same
 /// <c>StationRecordKey</c>. Species, age, gender and DNA stay in the general record - only sex and
+/// <summary>
 /// height live here.
+/// </summary>
+/// </summary>
 [Serializable, NetSerializable, DataRecord]
 public sealed partial record MedicalRecord
 {
@@ -27,9 +31,13 @@ public sealed partial record MedicalRecord
     public List<MedicalCase> History = new();
 }
 
+/// <summary>
 /// One entry in a patient's history - an innate deviation or an admitted illness. Its index in
 /// <see cref="MedicalRecord.History"/> is its identity, and is what the console's edit and delete
+/// <summary>
 /// messages refer to.
+/// </summary>
+/// </summary>
 [Serializable, NetSerializable, DataRecord]
 public sealed partial record MedicalCase
 {

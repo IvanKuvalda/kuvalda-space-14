@@ -11,9 +11,13 @@ using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom;
 
 namespace Content.Shared.DeadSpace.MedicalRecords.Components;
 
+/// <summary>
 /// The medical records console, placed in the medbay. Reading and editing a card needs medical
 /// access; deleting a case additionally needs <see cref="DeleteAccess"/>, since a deleted deviation
+/// <summary>
 /// cannot be re-added without a round restart.
+/// </summary>
+/// </summary>
 [RegisterComponent, AutoGenerateComponentPause]
 [Access(typeof(SharedMedicalRecordsConsoleSystem))]
 public sealed partial class MedicalRecordsConsoleComponent : Component
