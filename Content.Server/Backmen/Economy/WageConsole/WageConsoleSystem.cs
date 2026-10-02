@@ -164,8 +164,8 @@ public sealed class WageConsoleSystem : SharedWageConsoleSystem
         if (!string.IsNullOrEmpty(account.Comp.AccountName))
             return account.Comp.AccountName;
 
-        if (TryComp<MetaDataComponent>(account.Owner, out var meta))
-            return meta.EntityName;
+        if (HasComp<MetaDataComponent>(account.Owner))
+            return MetaData(account.Owner).EntityName;
 
         return account.Comp.AccountNumber;
     }
