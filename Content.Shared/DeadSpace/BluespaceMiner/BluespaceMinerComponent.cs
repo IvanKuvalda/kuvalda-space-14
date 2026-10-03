@@ -72,4 +72,8 @@ public sealed partial class BluespaceMinerComponent : Component
     /// <summary>Накопитель секунд для добычи материала.</summary>
     [ViewVariables]
     public float Accumulator;
+
+    /// <summary>Сколько листов материализуется одной пачкой с блюспейс-эффектом.</summary>
+    [DataField]
+    public int SheetsPerBatch = 20;
 }

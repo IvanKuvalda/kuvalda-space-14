@@ -3,22 +3,21 @@ using Content.Server.Materials;
 using Content.Server.Atmos.Piping.Components;
 using Content.Server.Power.EntitySystems;
 using Content.Shared.Atmos;
-using Content.Shared.Containers;
+using Content.Shared.DeadSpace.BluespaceMiner;
 using Content.Shared.Examine;
 using Content.Shared.Materials;
 using Content.Shared.Stacks;
 using Robust.Server.GameObjects;
-using Robust.Shared.Containers;
 using Robust.Shared.Map;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
-using Content.Shared.DeadSpace.BluespaceMiner;
 
 namespace Content.Server.DeadSpace.BluespaceMiner;
 
 /// <summary>
 /// Логика блюспейс-майнера: добывает материалы при соблюдении условий
-/// среды (20-60 K, 100-150 кПа) и выделяет горячий углекислый газ.
+/// среды (20-80 K, 100-150 кПа) и выделяет горячий углекислый газ.
+/// Добытые ресурсы материализуются рядом с машиной с блюспейс-эффектом.
 /// </summary>
 public sealed class BluespaceMinerSystem : EntitySystem
 {
@@ -27,11 +26,9 @@ public sealed class BluespaceMinerSystem : EntitySystem
     [Dependency] private readonly PowerReceiverSystem _power = default!;
     [Dependency] private readonly AppearanceSystem _appearance = default!;
     [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly EntityLookupSystem _lookup = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!;
+    [Dependency] private readonly SharedStackSystem _stack = default!;
     [Dependency] private readonly EntityManager _spawn = default!;
-
-    private readonly HashSet<Entity<PhysicalCompositionComponent>> _candidates = new();
+    [Dependency] private readonly IPrototypeManager _proto = default!;
 
     public override void Initialize()
     {
@@ -70,48 +67,7 @@ public sealed class BluespaceMinerSystem : EntitySystem
         {
             comp.Accumulator -= 1f;
             MineOnce(ent, comp);
-            TeleportNearbyResources(ent, comp);
         }
-    }
-
-    /// <summary>
-    /// Телепортирует предметы с материалами из зоны 3х3 тайлов в хранилище
-    /// машины с блюспейс-эффектом.
-    /// </summary>
-    private void TeleportNearbyResources(Entity<BluespaceMinerComponent> ent, BluespaceMinerComponent comp)
-    {
-        var xform = Transform(ent);
-        _lookup.GetEntitiesInRange(xform.Coordinates, comp.TeleportRange, _candidates, LookupFlags.Uncontained);
-
-        var teleported = 0;
-        foreach (var candidate in _candidates)
-        {
-            if (teleported >= comp.MaxTeleportsPerSecond)
-                break;
-
-            if (candidate.Owner == ent.Owner || TerminatingOrDeleted(candidate))
-                continue;
-
-            // не трогаем то, что лежит в контейнерах/инвентаре
-            if (_container.IsEntityInContainer(candidate))
-                continue;
-
-            // телепортируем только сыпучие ресурсы (руда, листы), а не любые предметы
-            if (!HasComp<StackComponent>(candidate))
-                continue;
-
-            if (!TryComp<PhysicalCompositionComponent>(candidate, out var composition) || composition.MaterialComposition.Count == 0)
-                continue;
-
-            foreach (var (material, amount) in composition.MaterialComposition)
-                _materialStorage.TryChangeMaterialAmount(ent, material, amount);
-
-            _spawn.SpawnEntity("EffectBluespaceMinerTeleport", Transform(candidate).Coordinates);
-            QueueDel(candidate);
-            teleported++;
-        }
-
-        _candidates.Clear();
     }
 
     private void MineOnce(Entity<BluespaceMinerComponent> ent, BluespaceMinerComponent comp)
@@ -122,7 +78,32 @@ public sealed class BluespaceMinerSystem : EntitySystem
         var material = PickMaterial(comp);
         var amount = comp.SheetsPerSecond * comp.MaterialPerSheet;
 
-        _materialStorage.TryChangeMaterialAmount(ent, material, amount);
+        // копим добычу во внутреннем хранилище, а когда наберётся пачка —
+        // материализуем её рядом с машиной с блюспейс-эффектом
+        if (!_materialStorage.TryChangeMaterialAmount(ent, material, amount))
+            return;
+
+        var batchAmount = comp.SheetsPerBatch * comp.MaterialPerSheet;
+        if (comp.SheetsPerBatch <= 0 || _materialStorage.GetMaterialAmount(ent, material) < batchAmount)
+            return;
+
+        _materialStorage.TryChangeMaterialAmount(ent, material, -batchAmount);
+        SpawnBatch(ent, comp, material, comp.SheetsPerBatch);
+    }
+
+    private void SpawnBatch(Entity<BluespaceMinerComponent> ent, BluespaceMinerComponent comp,
+        ProtoId<MaterialPrototype> material, int sheets)
+    {
+        var materialProto = _proto.Index<MaterialPrototype>(material);
+        if (materialProto.StackEntity is not { } stackProto)
+            return;
+
+        var xform = Transform(ent);
+        var coords = xform.Coordinates.Offset(_random.NextVector2(-0.4f, 0.4f));
+
+        var stack = _spawn.SpawnEntity(stackProto, coords);
+        _stack.SetCount(stack, sheets);
+        _spawn.SpawnEntity("EffectBluespaceMinerTeleport", coords);
     }
 
     private ProtoId<MaterialPrototype> PickMaterial(BluespaceMinerComponent comp)
