@@ -157,13 +157,3 @@
   cost: 2500
   category: cargoproduct-category-name-atmospherics
   group: engineering # DS14
-
-- type: cargoProduct
-  id: CargoBluespaceMinerBoard
-  icon:
-    sprite: Objects/Devices/circuitboard.rsi
-    state: supply
-  product: CrateBluespaceMinerBoard
-  cost: 9999
-  category: cargoproduct-category-name-materials
-  group: general
