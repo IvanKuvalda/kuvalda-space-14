@@ -1763,7 +1763,7 @@
   parent: BasePlushieDeadSpaceMisc
   id: PlushieIvanKuvalda
   name: плюшевый Иван Кувалда
-  description: Плюшевая игрушка легендарного Ивана Кувалды. Говорит, что кувалда решает всё. И она права.
+  description: Воняющая арбузами, плюшевая форма всеми любимого разработчика... по крайней мере... он так думает.
   components:
   - type: Sprite
     state: plushie_ivan_kuvalda
