@@ -32,7 +32,7 @@
 - type: cargoProduct
   id: CargoBluespaceMinerBoard
   icon:
-    sprite: Objects/Devices/circuitboard.rsi
+    sprite: Objects/Misc/module.rsi
     state: supply
   product: CrateBluespaceMinerBoard
   cost: 9999
