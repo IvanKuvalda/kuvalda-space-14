@@ -484,3 +484,8 @@
   parent: [ BaseCircuitboardRecipe, BaseGeneralMachineRecipeCategory ]
   id: HolopadMachineCircuitboard
   result: HolopadMachineCircuitboard
+
+- type: latheRecipe
+  parent: [ BaseGoldCircuitboardRecipe, BaseSupplyMachineRecipeCategory ]
+  id: BluespaceMinerMachineCircuitboard
+  result: BluespaceMinerMachineCircuitboard

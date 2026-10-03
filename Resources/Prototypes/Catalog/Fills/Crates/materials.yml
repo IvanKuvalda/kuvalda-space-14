@@ -255,3 +255,13 @@
       - id: SheetSteel
       - id: SheetGlass
       - id: SheetPlastic
+
+- type: entity
+  parent: CrateGenericSteel
+  id: CrateBluespaceMinerBoard
+  name: bluespace miner board crate
+  description: A single bluespace miner machine board, worth every credit.
+  components:
+  - type: StorageFill
+    contents:
+      - id: BluespaceMinerMachineCircuitboard

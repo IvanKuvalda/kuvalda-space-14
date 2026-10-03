@@ -1,0 +1,15 @@
+- type: entity
+  parent: BaseMachineCircuitboard
+  id: BluespaceMinerMachineCircuitboard
+  name: bluespace miner machine board
+  description: A bluespace machine board that, when inserted into an exofab, prints a bluespace miner.
+  components:
+  - type: Sprite
+    state: supply
+  - type: MachineBoard
+    prototype: BluespaceMiner
+    stackRequirements:
+      Manipulator: 4
+      Plasma: 5
+      Glass: 2
+      Cable: 1
