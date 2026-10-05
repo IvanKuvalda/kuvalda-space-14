@@ -1787,6 +1787,9 @@
     pack: PlushieIvanKuvaldaSpeech
   - type: UseDelay
     delay: 180
+
+- type: entity
+  parent: BasePlushieDeadSpaceMisc
   id: PlushieBog
   name: плюшевый ВОИТЕЛЬ А333
   description: Плюшевая игрушка настоящего ветерана НТ! Он побывал почти во всех ключевых  сражениях своей эпохи, потерял 40% оригинальных запчастей, но не боевой дух! Возьми его с собой как талисман на удачу!
