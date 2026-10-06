@@ -1,0 +1,8 @@
+- type: latheRecipe
+  id: PdaPainterMachineCircuitboard
+  result: PdaPainterMachineCircuitboard
+  category: Circuitry
+  completetime: 4
+  materials:
+    Steel: 200
+    Glass: 100
