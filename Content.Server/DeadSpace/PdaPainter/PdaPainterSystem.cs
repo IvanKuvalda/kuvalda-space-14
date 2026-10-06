@@ -84,9 +84,17 @@ public sealed class PdaPainterSystem : EntitySystem
         if (!TryComp<PdaComponent>(pda, out _))
             return;
 
-        var painted = EnsureComp<PdaPaintedComponent>(pda);
-        painted.Pixels = new Dictionary<int, int>(comp.Canvas);
-        Dirty(pda, painted);
+        if (comp.Canvas.Count == 0)
+        {
+            // Saving an empty canvas wipes the painting entirely.
+            RemComp<PdaPaintedComponent>(pda);
+        }
+        else
+        {
+            var painted = EnsureComp<PdaPaintedComponent>(pda);
+            painted.Pixels = new Dictionary<int, int>(comp.Canvas);
+            Dirty(pda, painted);
+        }
 
         // Apply the selected template by switching the PDA's base sprite state.
         comp.SelectedTemplate = args.TemplateId;
@@ -103,8 +111,23 @@ public sealed class PdaPainterSystem : EntitySystem
 
     private void OnReset(Entity<PdaPainterComponent> ent, ref PdaPainterResetMessage args)
     {
-        ent.Comp.Canvas.Clear();
-        ent.Comp.SelectedTemplate = null;
+        var (uid, comp) = ent;
+        comp.Canvas.Clear();
+        comp.SelectedTemplate = null;
+
+        // Wipe the painting off the inserted PDA and restore its original
+        // base sprite state from the prototype.
+        if (_itemSlots.TryGetSlot(uid, PdaPainterComponent.SlotId, out var slot) &&
+            slot.Item is { } pda &&
+            TryComp<PdaComponent>(pda, out _))
+        {
+            RemComp<PdaPaintedComponent>(pda);
+
+            var protoId = MetaData(pda).EntityPrototype?.ID;
+            var state = protoId != null ? GetTemplateState(protoId) : null;
+            _appearance.SetData(pda, PdaVisuals.PdaType, state ?? "pda");
+        }
+
         PushState(ent);
     }
 

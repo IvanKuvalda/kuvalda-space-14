@@ -1,5 +1,6 @@
 using Content.Shared.DeadSpace.PdaPainter;
 using Robust.Client.GameObjects;
+using Robust.Client.Utility;
 using Robust.Client.Graphics;
 using Robust.Client.ResourceManagement;
 using SixLabors.ImageSharp;
@@ -34,16 +35,26 @@ public sealed class PdaPaintedVisualizerSystem : EntitySystem
 
     private void OnShutdown(Entity<PdaPaintedComponent> ent, ref ComponentShutdown args)
     {
-        if (TryComp<SpriteComponent>(ent, out var sprite) &&
-            _sprite.LayerMapTryGet((ent, sprite), OverlayLayerKey, out var _, false))
-        {
-            _sprite.LayerMapRemove((ent, sprite), OverlayLayerKey);
-        }
+        RemoveOverlayLayer(ent);
     }
 
     private void OnState(Entity<PdaPaintedComponent> ent, ref AfterAutoHandleStateEvent args)
     {
         UpdateOverlay(ent);
+    }
+
+    private void RemoveOverlayLayer(Entity<PdaPaintedComponent> ent)
+    {
+        if (!TryComp<SpriteComponent>(ent, out var sprite))
+            return;
+
+        if (_sprite.LayerMapTryGet((ent, sprite), OverlayLayerKey, out var index, false))
+        {
+            // Remove the layer itself, not just the map entry — otherwise the
+            // painted texture would stay visible on the sprite.
+            _sprite.RemoveLayer((ent, sprite), index, false);
+            _sprite.LayerMapRemove((ent, sprite), OverlayLayerKey);
+        }
     }
 
     private void UpdateOverlay(Entity<PdaPaintedComponent> ent)
@@ -55,12 +66,12 @@ public sealed class PdaPaintedVisualizerSystem : EntitySystem
 
         if (pixels.Count == 0)
         {
-            if (_sprite.LayerMapTryGet((ent, sprite), OverlayLayerKey, out var _, false))
-                _sprite.LayerMapRemove((ent, sprite), OverlayLayerKey);
+            RemoveOverlayLayer(ent);
             return;
         }
 
         using var image = new Image<Rgba32>(32, 32);
+        var span = image.GetPixelSpan();
 
         foreach (var (index, packed) in pixels)
         {
@@ -73,7 +84,7 @@ public sealed class PdaPaintedVisualizerSystem : EntitySystem
             var g = (byte)((packed >> 8) & 0xFF);
             var b = (byte)(packed & 0xFF);
             var a = (byte)((packed >> 24) & 0xFF);
-            image[x, y] = new Rgba32(r, g, b, a);
+            span[y * 32 + x] = new Rgba32(r, g, b, a);
         }
 
         var texture = Texture.LoadFromImage(image);

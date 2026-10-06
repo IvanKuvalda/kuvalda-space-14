@@ -35,6 +35,7 @@
       <!-- Template tab -->
       <BoxContainer Orientation="Horizontal" VerticalExpand="True">
         <BoxContainer Orientation="Vertical" Margin="8 8 4 8" SetWidth="240">
+          <LineEdit Name="TemplateSearch" PlaceHolder="{Loc 'pda-painter-search'}" Margin="0 0 0 4"/>
           <Label Text="{Loc 'pda-painter-templates'}" StyleClasses="LabelSecondary"/>
           <ScrollContainer VerticalExpand="True" Margin="0 4 0 0">
             <ItemList Name="TemplateList" VerticalExpand="True"/>

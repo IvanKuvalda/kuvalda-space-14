@@ -14,10 +14,6 @@ public enum PdaPainterTool
     Pipette,
 }
 
-/// <summary>
-/// A 32x32 pixel painting canvas. Pixels are stored as packed ARGB ints,
-/// 0 meaning "no pixel". The backdrop texture is drawn under the pixels.
-/// </summary>
 public sealed class PdaPainterCanvas : Control
 {
     public const int CanvasSize = 32;
@@ -25,16 +21,15 @@ public sealed class PdaPainterCanvas : Control
 
     public Dictionary<int, int> Pixels = new();
 
-    /// <summary>Backdrop drawn under the painted pixels (the PDA sprite preview).</summary>
     public Texture? Backdrop;
 
     public PdaPainterTool Tool = PdaPainterTool.Brush;
     public int BrushSize = 1;
 
-    /// <summary>Provides the color used by the brush tool.</summary>
     public Func<Color>? ColorProvider;
 
-    /// <summary>Fired with the batch of changed (index, color) pairs when a stroke ends.</summary>
+    public Func<int, Color?>? PixelSampler;
+
     public event Action<List<int>, List<int>>? PixelsChanged;
 
     private bool _painting;
@@ -55,7 +50,6 @@ public sealed class PdaPainterCanvas : Control
     {
         var size = CanvasSize * PixelScale;
 
-        // Checkerboard background.
         for (var y = 0; y < CanvasSize; y += 2)
         {
             for (var x = 0; x < CanvasSize; x += 2)
@@ -67,7 +61,6 @@ public sealed class PdaPainterCanvas : Control
             }
         }
 
-        // Backdrop preview sprite (32x32 texture scaled up, nearest filtered).
         if (Backdrop != null)
         {
             var box = new UIBox2(0, 0, size, size);
@@ -75,7 +68,6 @@ public sealed class PdaPainterCanvas : Control
             handle.DrawTextureRectRegion(Backdrop, box, region);
         }
 
-        // Painted pixels.
         foreach (var (index, packed) in Pixels)
         {
             var x = index % CanvasSize;
@@ -85,7 +77,6 @@ public sealed class PdaPainterCanvas : Control
                 UnpackColor(packed));
         }
 
-        // Border.
         handle.DrawRect(new UIBox2(0, 0, size, 1), Color.Black);
         handle.DrawRect(new UIBox2(0, size - 1, size, size), Color.Black);
         handle.DrawRect(new UIBox2(0, 0, 1, size), Color.Black);
@@ -115,7 +106,13 @@ public sealed class PdaPainterCanvas : Control
                 break;
             case PdaPainterTool.Pipette:
                 if (Pixels.TryGetValue(index, out var picked))
+                {
                     PickedColor?.Invoke(UnpackColor(picked));
+                }
+                else if (PixelSampler?.Invoke(index) is { } sampled)
+                {
+                    PickedColor?.Invoke(sampled);
+                }
                 break;
         }
     }
@@ -150,7 +147,6 @@ public sealed class PdaPainterCanvas : Control
         _lastIndex = index;
     }
 
-    /// <summary>Raised when the pipette picked a color from the canvas.</summary>
     public event Action<Color>? PickedColor;
 
     private int ScreenToPixel(Vector2 relative)
@@ -164,7 +160,6 @@ public sealed class PdaPainterCanvas : Control
 
     private void DrawLine(int from, int to)
     {
-        // Simple Bresenham between the two pixel indices.
         var x0 = from % CanvasSize;
         var y0 = from / CanvasSize;
         var x1 = to % CanvasSize;

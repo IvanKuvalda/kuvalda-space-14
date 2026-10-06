@@ -22,3 +22,4 @@ pda-painter-reset = Сбросить
 
 pda-painter-inserted = Вставлен: {$name}
 pda-painter-no-pda = КПК не вставлен
+pda-painter-search = Поиск...

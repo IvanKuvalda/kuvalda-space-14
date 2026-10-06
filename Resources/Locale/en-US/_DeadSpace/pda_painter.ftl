@@ -22,3 +22,4 @@ pda-painter-reset = Reset
 
 pda-painter-inserted = Inserted: {$name}
 pda-painter-no-pda = No PDA inserted
+pda-painter-search = Search...
