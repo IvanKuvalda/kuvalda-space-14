@@ -189,9 +189,8 @@ public sealed class MedicalRecordsSystem : SharedMedicalRecordsSystem
 
         switch (record.Status)
         {
-            case MedicalStatus.None or MedicalStatus.CompletedTreatment when needsTreatment:
+            case MedicalStatus.None or MedicalStatus.CompletedTreatment when needsTreatment && !record.StatusManuallySet:
                 record.Status = MedicalStatus.OnTreatment;
-                record.StatusManuallySet = false;
                 break;
             case MedicalStatus.OnTreatment when !needsTreatment && !record.StatusManuallySet:
                 record.Status = record.History.Count > 0

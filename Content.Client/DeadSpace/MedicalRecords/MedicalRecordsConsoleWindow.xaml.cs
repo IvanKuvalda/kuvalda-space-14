@@ -289,15 +289,15 @@ public sealed partial class MedicalRecordsConsoleWindow : FancyWindow
 
         var entry = record.History[index];
         var message = FormattedMessage.FromMarkupOrThrow(Loc.GetString("medical-records-console-case-details",
-            ("diagnosis", entry.Diagnosis),
-            ("admission", entry.AdmissionState),
-            ("treatment", entry.Treatment),
-            ("recommendations", entry.Recommendations),
-            ("discharge", entry.DischargeState),
+            ("diagnosis", FormattedMessage.EscapeText(entry.Diagnosis)),
+            ("admission", FormattedMessage.EscapeText(entry.AdmissionState)),
+            ("treatment", FormattedMessage.EscapeText(entry.Treatment)),
+            ("recommendations", FormattedMessage.EscapeText(entry.Recommendations)),
+            ("discharge", FormattedMessage.EscapeText(entry.DischargeState)),
             ("specialists", entry.Specialists.Count == 0
                 ? Loc.GetString("medical-records-print-none")
-                : string.Join(", ", entry.Specialists)),
-            ("author", entry.AuthorName ?? Loc.GetString("medical-records-case-no-author"))));
+                : FormattedMessage.EscapeText(string.Join(", ", entry.Specialists))),
+            ("author", FormattedMessage.EscapeText(entry.AuthorName ?? Loc.GetString("medical-records-case-no-author")))));
 
         CaseDetails.SetMessage(message);
         CaseDetails.Visible = true;

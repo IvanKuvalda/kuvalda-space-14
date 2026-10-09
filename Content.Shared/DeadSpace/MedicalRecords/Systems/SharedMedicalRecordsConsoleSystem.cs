@@ -22,17 +22,6 @@ public abstract class SharedMedicalRecordsConsoleSystem : EntitySystem
     {
         base.Initialize();
 
-        // IdentitySystem.UpdateIdentityInfo raises IdentityChangedEvent directed at the character
-        // entity right before its own criminal-records call - subscribing to that existing event is
-        // the same "re-check the icon when the name changes" hook Criminal Records gets, without
-        // touching IdentitySystem.cs. Matters here because the medical record is keyed by name and
-        // a chameleon or a mind-swap would otherwise keep the previous occupant's syringe icon.
-        //
-        // Keyed on MetaDataComponent rather than IdentityComponent on purpose: the event bus allows
-        // exactly one subscription per (component, event) pair per side, and the Dead Space
-        // Personnel Records console already owns (IdentityComponent, IdentityChangedEvent) on the
-        // server. The character always carries MetaDataComponent, and IdentityChangedEvent is only
-        // ever raised directed at a character, so this pair is equivalent and does not collide.
         SubscribeLocalEvent<MetaDataComponent, IdentityChangedEvent>(OnIdentityChanged);
     }
 

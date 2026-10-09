@@ -30,9 +30,7 @@
   - type: ShowMindShieldIcons
   - type: ShowCriminalRecordIcons
   - type: ShowPersonnelRecordIcons
-  # DS14-start: a surveillance visor shows the same medical subset security acts on
   - type: ShowSecurityMedicalStatusIcons
-  # DS14-end
   - type: ShowSyndicateIcons
   - type: EmitSoundOnPickup
     sound:

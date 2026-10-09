@@ -18,13 +18,6 @@ using Robust.Shared.Timing;
 
 namespace Content.Server.DeadSpace.MedicalRecords.Systems;
 
-/// <summary>
-/// Handles the "print" button on a single medical case: reads the health conclusion template,
-/// fills the shared <c>PaperworkTextSubstitutions</c> plus the per-case values, and spawns the
-/// <summary>
-/// paper at the console.
-/// </summary>
-/// </summary>
 public sealed class MedicalPrintingSystem : EntitySystem
 {
     [Dependency] private readonly SharedAudioSystem _audio = default!;
@@ -137,9 +130,14 @@ public sealed class MedicalPrintingSystem : EntitySystem
 
     // Not static, unlike SexKey: Loc is an instance member of EntitySystem, so anything that
     // resolves a localization id has to be reached through `this`.
-    private string FormatCaseTime(TimeSpan time) => time <= TimeSpan.Zero
-        ? Loc.GetString("medical-records-case-time-at-birth")
-        : time.ToString(@"hh\:mm\:ss", System.Globalization.CultureInfo.InvariantCulture);
+    private string FormatCaseTime(TimeSpan time)
+    {
+        if (time <= TimeSpan.Zero)
+            return Loc.GetString("medical-records-case-time-at-birth");
+
+        return $"{(int)time.TotalHours:00}:{time.Minutes:00}:{time.Seconds:00}";
+    }
 
     private string Or(string value, string locKey) =>
-        string.IsNullOrWhiteSpace(value) ? Loc.GetString(locKey) : value;}
+        string.IsNullOrWhiteSpace(value) ? Loc.GetString(locKey) : value;
+}
