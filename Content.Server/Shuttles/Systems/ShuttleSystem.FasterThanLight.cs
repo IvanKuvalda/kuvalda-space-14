@@ -74,6 +74,14 @@ public sealed partial class ShuttleSystem
     private const float CoordRollover = 40000f;
     // Lua-end
 
+    // DS14-start
+    private const int ExpeditionLandingRings = 6;
+    private const int ExpeditionLandingSpokes = 8;
+
+    private const float ExpeditionLandingMinOffset = 10f;
+    private const float ExpeditionLandingMaxOffset = 72f;
+    // DS14-end
+
     /// <summary>
     /// How many times we try to proximity warp close to something before falling back to map-wideAABB.
     /// </summary>
@@ -1047,26 +1055,6 @@ public sealed partial class ShuttleSystem
     }
 
     // DS14-Start
-    /// <summary>
-    /// How many candidate spots get sampled around an expedition beacon before giving up and letting the
-    /// arrival logic carve the landing site out of the terrain instead.
-    /// </summary>
-    private const int ExpeditionLandingRings = 6;
-    private const int ExpeditionLandingSpokes = 8;
-
-    /// <summary>
-    /// How far away from an expedition beacon a shuttle may drop, in tiles.
-    /// </summary>
-    private const float ExpeditionLandingMinOffset = 10f;
-    private const float ExpeditionLandingMaxOffset = 72f;
-
-    /// <summary>
-    /// Expedition maps are grids of procedural terrain and their FTL beacon sits on the map entity itself,
-    /// i.e. in the middle of the asteroid. Dropping a shuttle exactly on the beacon means arriving buried
-    /// inside the generated dungeon and its boundary rock, so sample the area around the beacon for a spot
-    /// that has no real tiles or structures on it. The procedural terrain itself is cleared on arrival by
-    /// <see cref="Smimsh"/>, so it does not count as occupied.
-    /// </summary>
     public bool TryGetExpeditionLandingSpot(
         EntityUid shuttleUid,
         EntityCoordinates beacon,
@@ -1136,7 +1124,7 @@ public sealed partial class ShuttleSystem
 
         return true;
     }
-    // DS14-end, однажды
+    // DS14-end
 
     private bool IsInsidePlanetPlayableArea(EntityUid mapUid, Box2Rotated shuttleBounds)
     {
