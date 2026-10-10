@@ -8504,3 +8504,10 @@ Entries:
   changes:
   - type: Tweak
     message: Анимация дрожания
+- id: 816
+  author: HiAmaliz
+  time: '2026-10-10T13:53:51.003443+00:00'
+  pr: 2493
+  changes:
+  - type: Fix
+    message: Плазма на аврите, мелкие изменения на карте BOX
