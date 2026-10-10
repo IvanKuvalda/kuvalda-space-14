@@ -840,15 +840,18 @@ public sealed class PsychiatryClientSystem : SharedPsychiatrySystem
             ? ""
             : $"\\[{FormattedMessage.EscapeText(ev.Job)}\\] ";
 
+        var speakerName = FormattedMessage.EscapeText(ev.SpeakerName);
+
         return Loc.GetString("chat-radio-message-wrap",
             ("channel-color", channelColor),
             ("fontType", "Default"),
             ("fontSize", 12),
             ("verb", Loc.GetString("psychiatry-radio-verb")),
             ("channel", $"\\[{Loc.GetString("chat-radio-common")}\\]"),
-            ("name", FormattedMessage.EscapeText(ev.SpeakerName)),
+            ("name", speakerName),
             ("message", FormattedMessage.EscapeText(ev.Message)),
             ("headset-color", headset),
+            ("headset-name", $"{job}{speakerName}"),
             ("job", job));
     }
 }
