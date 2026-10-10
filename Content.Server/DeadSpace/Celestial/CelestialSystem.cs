@@ -67,9 +67,9 @@ public sealed class CelestialSystem : EntitySystem
     private static DamageSpecifier MakeBeamDamage()
     {
         var d = new DamageSpecifier();
-        d.DamageDict.TryAdd("Heat", 40f);
-        d.DamageDict.TryAdd("Blunt", 20f);
-        d.DamageDict.TryAdd("Structural", 50f);
+        d.DamageDict.TryAdd("Heat", 20f);
+        d.DamageDict.TryAdd("Blunt", 10f);
+        d.DamageDict.TryAdd("Structural", 25f);
         return d;
     }
 
@@ -264,9 +264,11 @@ public sealed class CelestialSystem : EntitySystem
                 continue;
             comp.DamageAccumulator -= comp.DamageInterval;
 
-            // радиус сферы по кривой роста (совпадает с клиентской отрисовкой)
+            // радиус сферы по кривой роста (совпадает с клиентской отрисовкой),
+            // радиус УРОНА отдельно меньше визуального
             var t = Math.Clamp(comp.Elapsed / comp.Lifetime, 0f, 1f);
-            var radius = MathHelper.Lerp(comp.StartScale, comp.EndScale, MathF.Pow(t, comp.GrowthExponent));
+            var radius = MathHelper.Lerp(comp.StartScale, comp.EndScale, MathF.Pow(t, comp.GrowthExponent))
+                * comp.DamageRadiusScale;
             var sphereXform = Transform(uid);
             _nearbySpheres.Clear();
             _lookup.GetEntitiesInRange(sphereXform.Coordinates, radius, _nearbySpheres, LookupFlags.Uncontained);
@@ -531,9 +533,9 @@ public sealed class CelestialSystem : EntitySystem
 
                 Sound(comp.BeamSound ?? comp.VariationSound, ent);
 
-                // урон всем, кто стоит НА ЛИНИИ луча (в 1 м от отрезка)
+                // урон всем, кто стоит НА ЛИНИИ луча (радиус - BeamDamageRadius)
                 var beamMid = (beamStart + beamEnd) / 2f;
-                var beamHalfLen = (beamEnd - beamStart).Length() / 2f + 1.2f;
+                var beamHalfLen = (beamEnd - beamStart).Length() / 2f + comp.BeamDamageRadius;
                 var beamMidMap = new MapCoordinates(beamMid, strikeMap.MapId);
                 _nearbySpheres.Clear();
                 foreach (var victim in _lookup.GetEntitiesInRange(beamMidMap, beamHalfLen, LookupFlags.Uncontained))
@@ -551,7 +553,7 @@ public sealed class CelestialSystem : EntitySystem
                 // ломаем пол под ударом
                 foreach (var gridEnt in _mapManager.GetAllGrids(strikeMap.MapId))
                 {
-                    foreach (var tile in _map.GetTilesIntersecting(gridEnt.Owner, gridEnt.Comp, new Circle(strikeMap.Position, 0.9f)))
+                    foreach (var tile in _map.GetTilesIntersecting(gridEnt.Owner, gridEnt.Comp, new Circle(strikeMap.Position, 0.6f)))
                     {
                         _tiles.PryTile(tile);
                     }
@@ -614,9 +616,9 @@ public sealed class CelestialSystem : EntitySystem
 
         var afterOrbs = orbPhase;
 
-        // Cutter по тем, кто НЕ был целью (с рандомным смещением), 4 повтора
-        var cutterTargets = GetTargets(ent, 1 + comp.ExtraTargets + comp.FutilityTargets);
-        var nonTargets = cutterTargets.Where(t => !targets.Contains(t)).ToList();
+        // Cutter по тем, кто НЕ был целью (с рандомным смещением), но не больше CutterTargets игроков
+        var cutterPool = GetTargets(ent, 1 + comp.ExtraTargets + comp.FutilityTargets);
+        var nonTargets = cutterPool.Where(t => !targets.Contains(t)).Take(comp.CutterTargets).ToList();
         for (var r = 0; r < comp.CutterRepeats; r++)
         {
             var delay = afterOrbs + r * comp.CutterRepeatDelay;
@@ -696,9 +698,11 @@ public sealed class CelestialSystem : EntitySystem
                 orbComp.Phase = _random.NextFloat(0f, MathF.Tau);
                 orbComp.Lifetime = comp.OrbLifetime;
                 orbComp.Speed = comp.OrbSpeed;
+                orbComp.TurnRate = comp.OrbTurnRate; // неповоротливость: шар тяжело доворачивает
                 orbComp.FireInterval = comp.OrbFireInterval;
                 orbComp.BeamDamageMin = comp.SmallBeamMinDamage;
                 orbComp.BeamDamageMax = comp.SmallBeamMaxDamage;
+                orbComp.BeamRadius = comp.SmallBeamRadius;
                 orbComp.LocalizedEvents = comp.LocalizedEvents;
                 orbComp.VelocityDir = Vector2.Normalize(
                     _transform.GetMapCoordinates(target).Position - riftCenter);
@@ -728,12 +732,12 @@ public sealed class CelestialSystem : EntitySystem
         damage.DamageDict.TryAdd("Blunt", amount * 0.5f);
 
         var mid = (start + end) / 2f;
-        var halfLen = length / 2f + 0.8f;
+        var halfLen = length / 2f + orb.BeamRadius;
         foreach (var victim in _lookup.GetEntitiesInRange(new MapCoordinates(mid, mapId), halfLen, LookupFlags.Uncontained))
         {
             if (TerminatingOrDeleted(victim))
                 continue;
-            if (DistanceToSegment(_transform.GetMapCoordinates(victim).Position, start, end) > 0.8f)
+            if (DistanceToSegment(_transform.GetMapCoordinates(victim).Position, start, end) > orb.BeamRadius)
                 continue;
             _damage.TryChangeDamage(victim, damage, true);
         }
@@ -780,7 +784,7 @@ public sealed class CelestialSystem : EntitySystem
             damage.DamageDict.TryAdd("Heat", comp.CutterDamage * 0.6f);
             damage.DamageDict.TryAdd("Blunt", comp.CutterDamage * 0.4f);
 
-            var halfLen = comp.CutterLength / 2f + 2f;
+            var halfLen = comp.CutterLength / 2f + comp.CutterDamageRadius;
             _nearbySpheres.Clear();
             foreach (var victim in _lookup.GetEntitiesInRange(new MapCoordinates(center, bossPos.MapId), halfLen, LookupFlags.Uncontained))
             {
@@ -791,7 +795,7 @@ public sealed class CelestialSystem : EntitySystem
                 var victimRel = victimPos - center;
 
                 // у самого центра бьёт гарантированно
-                if (victimRel.Length() <= 2.5f)
+                if (victimRel.Length() <= comp.CutterDamageRadius * 2f)
                 {
                     _damage.TryChangeDamage(victim, damage, true);
                     continue;
@@ -803,7 +807,7 @@ public sealed class CelestialSystem : EntitySystem
                 {
                     var ang = baseAngle + k * MathF.PI / 4f;
                     var rayEnd = center + new Vector2(MathF.Cos(ang), MathF.Sin(ang)) * (comp.CutterLength / 2f);
-                    if (DistanceToSegment(victimPos, center, rayEnd) <= 1.5f)
+                    if (DistanceToSegment(victimPos, center, rayEnd) <= comp.CutterDamageRadius)
                     {
                         hit = true;
                         break;
@@ -909,14 +913,15 @@ public sealed class CelestialSystem : EntitySystem
             var circle = Spawn("CelestialCircle", new MapCoordinates(pos, bossPos.MapId));
             if (TryComp<CelestialCircleComponent>(circle, out var circleComp))
             {
-                circleComp.Radius = _random.NextFloat(1.8f, 3.4f);
+                circleComp.Radius = _random.NextFloat(1.5f, 2.8f);
+                circleComp.DamageRadiusScale = comp.CircleDamageRadiusScale;
                 var dirAngle = _random.NextFloat(0f, MathF.Tau);
                 circleComp.WanderDir = new Vector2(MathF.Cos(dirAngle), MathF.Sin(dirAngle));
                 Dirty(circle, circleComp);
             }
         }
 
-        // после дрейфа и чёрной фазы - сферы, затем Cutter по ВСЕМ игрокам
+        // после дрейфа и чёрной фазы - сферы, затем Cutter по CutterTargets игрокам
         var circlesEnd = comp.CircleWanderTime + 1.4f + 1f;
         Timer.Spawn(TimeSpan.FromSeconds(circlesEnd), () =>
         {
@@ -929,8 +934,8 @@ public sealed class CelestialSystem : EntitySystem
                 if (TerminatingOrDeleted(ent))
                     return;
 
-                // Cutter на всех игроков
-                var everyone = GetTargets(ent, 100);
+                // Cutter только на нескольких игроков
+                var cutterTargets = GetTargets(ent, comp.CutterTargets);
                 for (var r = 0; r < comp.CutterRepeats; r++)
                 {
                     var delay = r * comp.CutterRepeatDelay;
@@ -938,7 +943,7 @@ public sealed class CelestialSystem : EntitySystem
                     {
                         if (TerminatingOrDeleted(ent))
                             return;
-                        foreach (var target in everyone)
+                        foreach (var target in cutterTargets)
                         {
                             if (TerminatingOrDeleted(target))
                                 continue;
@@ -1028,7 +1033,7 @@ public sealed class CelestialSystem : EntitySystem
                     continue;
                 circle.DamageAccumulator -= circle.DamageInterval;
 
-                var radius = circle.Radius * 0.85f;
+                var radius = circle.Radius * circle.DamageRadiusScale;
                 var xform = Transform(uid);
                 _nearbySpheres.Clear();
                 _lookup.GetEntitiesInRange(xform.Coordinates, radius, _nearbySpheres, LookupFlags.Uncontained);
@@ -1070,8 +1075,9 @@ public sealed class CelestialSystem : EntitySystem
                 // у каждой сферы свой размер и время жизни
                 if (TryComp<CelestialSphereComponent>(sphere, out var sphereComp))
                 {
-                    sphereComp.StartScale = _random.NextFloat(0.3f, 0.6f);
-                    sphereComp.EndScale = _random.NextFloat(1.4f, 2.4f);
+                    sphereComp.StartScale = _random.NextFloat(0.25f, 0.5f);
+                    sphereComp.EndScale = _random.NextFloat(1.1f, 1.9f);
+                    sphereComp.DamageRadiusScale = comp.SphereDamageRadiusScale;
                     sphereComp.Lifetime = _random.NextFloat(comp.SphereLifetimeMin, comp.SphereLifetimeMax);
                     Dirty(sphere, sphereComp);
                 }
@@ -1204,7 +1210,7 @@ public sealed class CelestialSystem : EntitySystem
                                     victimVel = victimPhysics.LinearVelocity;
                                 var victimPos = _transform.GetMapCoordinates(victim).Position + victimVel * 0.15f;
 
-                                if (DistanceToSegment(victimPos, start, end) > 1.2f)
+                                if (DistanceToSegment(victimPos, start, end) > comp.BeamDamageRadius)
                                     continue;
 
                                 _damage.TryChangeDamage(victim, bloomDamage, true);
@@ -1281,7 +1287,7 @@ public sealed class CelestialSystem : EntitySystem
                 var victimPos = _transform.GetMapCoordinates(victim).Position;
                 foreach (var (bs, be) in freezeBeams)
                 {
-                    if (DistanceToSegment(victimPos, bs, be) <= 1f)
+                    if (DistanceToSegment(victimPos, bs, be) <= comp.FreezeBeamRadius)
                     {
                         _damage.TryChangeDamage(victim, freezeDamage, true);
                         break;
@@ -1289,9 +1295,9 @@ public sealed class CelestialSystem : EntitySystem
                 }
             }
 
-            // cutter на ВСЕХ игроков
-            var everyone = GetTargets(ent, 100);
-            foreach (var target in everyone)
+            // cutter только на нескольких игроков
+            var cutterTargets = GetTargets(ent, comp.CutterTargets);
+            foreach (var target in cutterTargets)
             {
                 if (TerminatingOrDeleted(target))
                     continue;
@@ -1307,7 +1313,8 @@ public sealed class CelestialSystem : EntitySystem
                 var circle = Spawn("CelestialCircle", new MapCoordinates(pos, bossPos.MapId));
                 if (TryComp<CelestialCircleComponent>(circle, out var circleComp))
                 {
-                    circleComp.Radius = _random.NextFloat(1.8f, 3.4f);
+                    circleComp.Radius = _random.NextFloat(1.5f, 2.8f);
+                    circleComp.DamageRadiusScale = comp.CircleDamageRadiusScale;
                     var dirAngle = _random.NextFloat(0f, MathF.Tau);
                     circleComp.WanderDir = new Vector2(MathF.Cos(dirAngle), MathF.Sin(dirAngle));
                     circleComp.WanderTime = comp.CutterRotateTime; // чернеют одновременно со вспышкой Cutter
