@@ -5,21 +5,21 @@
   description: A machine that paints PDAs, either by hand or using a template.
   components:
   - type: Sprite
-    sprite: Structures/Machines/flatpacker.rsi
+    sprite: _DeadSpace/Other/pda_painter.rsi
     snapCardinals: true
     layers:
-    - state: base
-    - state: unlit
-      map: ["enum.PowerDeviceVisualLayers.Powered"]
+    - state: icon
+    - state: off-unlit
       shader: unshaded
+      map: ["enum.PowerDeviceVisualLayers.Powered"]
     - state: panel
       map: ["enum.WiresVisualLayers.MaintenancePanel"]
   - type: GenericVisualizer
     visuals:
       enum.PowerDeviceVisuals.Powered:
         enum.PowerDeviceVisualLayers.Powered:
-          True: { visible: true }
-          False: { visible: false }
+          True: { state: unlit }
+          False: { state: off-unlit }
   - type: PdaPainter
   - type: ItemSlots
     slots:
@@ -31,6 +31,8 @@
   - type: ContainerContainer
     containers:
       pda_slot: !type:ContainerSlot
+      machine_board: !type:Container
+      machine_parts: !type:Container
   - type: WiresPanel
   - type: WiresVisuals
   - type: Appearance
