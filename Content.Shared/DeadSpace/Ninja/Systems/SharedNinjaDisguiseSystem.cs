@@ -102,7 +102,9 @@ public abstract class SharedNinjaDisguiseSystem : EntitySystem
             Gender = humanoid.Gender,
             Age = humanoid.Age,
             Voice = humanoid.Voice,
+            TtsVoices = new(humanoid.TtsVoices),
             PermanentlyHidden = new HashSet<HumanoidVisualLayers>(humanoid.PermanentlyHidden),
+            HiddenLayers = new Dictionary<HumanoidVisualLayers, SlotFlags>(humanoid.HiddenLayers),
             CustomBaseLayers = new Dictionary<HumanoidVisualLayers, CustomBaseLayerInfo>(humanoid.CustomBaseLayers),
             HairGradientEnabled = humanoid.HairGradientEnabled,
             HairGradientColor = humanoid.HairGradientColor,
@@ -122,11 +124,11 @@ public abstract class SharedNinjaDisguiseSystem : EntitySystem
         _humanoidAppearance.SetSex(humanoid.Owner, saved.Sex);
         _humanoidAppearance.SetGender(humanoid.Owner, saved.Gender);
         humanoid.Comp.Age = saved.Age;
-        _humanoidAppearance.SetTTSVoice(humanoid.Owner, saved.Voice, humanoid);
+        _humanoidAppearance.SetTTSVoice(humanoid.Owner, saved.Voice, humanoid, saved.TtsVoices);
         humanoid.Comp.PermanentlyHidden = new HashSet<HumanoidVisualLayers>(saved.PermanentlyHidden);
         humanoid.Comp.CustomBaseLayers = new Dictionary<HumanoidVisualLayers, CustomBaseLayerInfo>(saved.CustomBaseLayers);
 
-        humanoid.Comp.HiddenLayers = new Dictionary<HumanoidVisualLayers, SlotFlags>();
+        humanoid.Comp.HiddenLayers = new Dictionary<HumanoidVisualLayers, SlotFlags>(saved.HiddenLayers);
 
         humanoid.Comp.HairGradientEnabled = saved.HairGradientEnabled;
         humanoid.Comp.HairGradientColor = saved.HairGradientColor;

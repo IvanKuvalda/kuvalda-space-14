@@ -5,7 +5,9 @@ namespace Content.Shared.DeadSpace.Psychiatry;
 public enum SchizophreniaStage : byte
 {
     None = 0,
-    Latent = 1,
-    Simple = 2,
-    Acute = 3,
+    // Нет симптомов. Через автопрогресс становится латентной.
+    Incipient = 1,
+    Latent = 2,
+    Simple = 3,
+    Acute = 4,
 }

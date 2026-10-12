@@ -235,10 +235,10 @@ public sealed class CCCCVars
         CVarDef.Create("deadspace.psychiatry_onset_cooldown_sec", 120f, CVar.SERVER | CVar.REPLICATED);
 
     public static readonly CVarDef<float> PsychiatryAutoEscalateMinSec =
-        CVarDef.Create("deadspace.psychiatry_auto_escalate_min_sec", 900f, CVar.SERVER | CVar.REPLICATED);
+        CVarDef.Create("deadspace.psychiatry_auto_escalate_min_sec", 600f, CVar.SERVER | CVar.REPLICATED);
 
     public static readonly CVarDef<float> PsychiatryAutoEscalateMaxSec =
-        CVarDef.Create("deadspace.psychiatry_auto_escalate_max_sec", 1200f, CVar.SERVER | CVar.REPLICATED);
+        CVarDef.Create("deadspace.psychiatry_auto_escalate_max_sec", 600f, CVar.SERVER | CVar.REPLICATED);
 
     public static readonly CVarDef<float> PsychiatryScareMinSec =
         CVarDef.Create("deadspace.psychiatry_scare_min_sec", 30f, CVar.CLIENTONLY | CVar.ARCHIVE);
@@ -276,14 +276,14 @@ public sealed class CCCCVars
 
     // Шанс от падения. Луж и бананов много, поэтому он маленький.
     public static readonly CVarDef<float> PsychiatrySlipChance =
-        CVarDef.Create("deadspace.psychiatry_slip_chance", 0.05f, CVar.SERVER | CVar.REPLICATED);
+        CVarDef.Create("deadspace.psychiatry_slip_chance", 0.01f, CVar.SERVER | CVar.REPLICATED);
 
     // Если асфиксия выше этого числа, дефиб сажает болезнь сильнее.
     public static readonly CVarDef<float> PsychiatryDefibAsphyxiation =
         CVarDef.Create("deadspace.psychiatry_defib_asphyxiation", 60f, CVar.SERVER | CVar.REPLICATED);
 
     public static readonly CVarDef<float> PsychiatryDefibHighChance =
-        CVarDef.Create("deadspace.psychiatry_defib_high_chance", 0.20f, CVar.SERVER | CVar.REPLICATED);
+        CVarDef.Create("deadspace.psychiatry_defib_high_chance", 0.01f, CVar.SERVER | CVar.REPLICATED);
 
     public static readonly CVarDef<float> PsychiatryDefibLowChance =
         CVarDef.Create("deadspace.psychiatry_defib_low_chance", 0.01f, CVar.SERVER | CVar.REPLICATED);
@@ -293,7 +293,7 @@ public sealed class CCCCVars
         CVarDef.Create("deadspace.psychiatry_defib_stage_split", 0.5f, CVar.SERVER | CVar.REPLICATED);
 
     public static readonly CVarDef<float> PsychiatryAlcoholChance =
-        CVarDef.Create("deadspace.psychiatry_alcohol_chance", 0.02f, CVar.SERVER | CVar.REPLICATED);
+        CVarDef.Create("deadspace.psychiatry_alcohol_chance", 0.0005f, CVar.SERVER | CVar.REPLICATED);
 
     // ЭМИ для позитроника опаснее обычного удара током.
     public static readonly CVarDef<float> PsychiatryEmpChance =
@@ -325,11 +325,15 @@ public sealed class CCCCVars
         CVarDef.Create("deadspace.psychiatry_asphyxiation_severe", 80f, CVar.SERVER | CVar.REPLICATED);
 
     public static readonly CVarDef<float> PsychiatryAsphyxiationChance =
-        CVarDef.Create("deadspace.psychiatry_asphyxiation_chance", 0.01f, CVar.SERVER | CVar.REPLICATED);
+        CVarDef.Create("deadspace.psychiatry_asphyxiation_chance", 0.005f, CVar.SERVER | CVar.REPLICATED);
 
-    // Пауза между бросками удушья, радиации и шока. Урон капает чаще, болезнь проверяется раз за паузу.
+    // Пауза между бросками удушья, радиации, шока и алкоголя. Яды и лекарства проверяются с той же паузой.
     public static readonly CVarDef<float> PsychiatryDamageRollGapSec =
-        CVarDef.Create("deadspace.psychiatry_damage_roll_gap_sec", 2f, CVar.SERVER | CVar.REPLICATED);
+        CVarDef.Create("deadspace.psychiatry_damage_roll_gap_sec", 10f, CVar.SERVER | CVar.REPLICATED);
+
+    // Пауза между сменами стадии от урона и отравления. Обычный кулдаун болезни при этом тоже стоит.
+    public static readonly CVarDef<float> PsychiatryHarmStageCooldownSec =
+        CVarDef.Create("deadspace.psychiatry_harm_stage_cooldown_sec", 300f, CVar.SERVER | CVar.REPLICATED);
 
     // 0 полный иммунитет, 1 только случайные ситуации, 2 иммунитета нет.
     public static readonly CVarDef<int> PsychiatryAntagImmunityMode =
@@ -343,18 +347,9 @@ public sealed class CCCCVars
     public static readonly CVarDef<float> PsychiatryCoursePillUnits =
         CVarDef.Create("deadspace.psychiatry_course_pill_units", 15f, CVar.SERVER | CVar.REPLICATED);
 
-    // Шанс сбоя у шока. У лоботомии около 0.30, шок должен быть безопаснее.
+    // Шанс слепоты, глухоты или немоты у шока и зонда.
     public static readonly CVarDef<float> PsychiatryShockFaultChance =
-        CVarDef.Create("deadspace.psychiatry_shock_fault_chance", 0.18f, CVar.SERVER | CVar.REPLICATED);
-
-    public static readonly CVarDef<float> PsychiatryLobotomyFaultChance =
-        CVarDef.Create("deadspace.psychiatry_lobotomy_fault_chance", 0.30f, CVar.SERVER | CVar.REPLICATED);
-
-    public static readonly CVarDef<float> PsychiatryIonFaultChance =
-        CVarDef.Create("deadspace.psychiatry_ion_fault_chance", 0.40f, CVar.SERVER | CVar.REPLICATED);
-
-    public static readonly CVarDef<float> PsychiatryHardResetFaultChance =
-        CVarDef.Create("deadspace.psychiatry_hard_reset_fault_chance", 0.30f, CVar.SERVER | CVar.REPLICATED);
+        CVarDef.Create("deadspace.psychiatry_shock_fault_chance", 0.25f, CVar.SERVER | CVar.REPLICATED);
 
     // Сколько луж максимум зацепит один удар, чтобы не залить всю палубу.
     public static readonly CVarDef<int> PsychiatryPuddleChainCap =

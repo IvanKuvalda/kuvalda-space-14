@@ -1,8 +1,10 @@
 // Мёртвый Космос, Licensed under custom terms with restrictions on public hosting and commercial use, full text: https://raw.githubusercontent.com/dead-space-server/space-station-14-fobos/master/LICENSE.TXT
 
 using Content.Shared.Humanoid;
+using Content.Shared.DeadSpace.TTS;
 using Content.Shared.Humanoid.Markings;
 using Content.Shared.Humanoid.Prototypes;
+using Content.Shared.Inventory;
 using Robust.Shared.Enums;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization;
@@ -37,10 +39,20 @@ public sealed class NinjaDisguiseAppearance
     public int Age = 18;
 
     [DataField]
-    public string Voice = SharedHumanoidAppearanceSystem.DefaultVoice;
+    public string Voice
+    {
+        get => TtsVoices.GetValueOrDefault(TTSVoices.Silero, SharedHumanoidAppearanceSystem.DefaultVoice);
+        set => TtsVoices[TTSVoices.Silero] = value;
+    }
+
+    [DataField]
+    public Dictionary<string, string> TtsVoices = new();
 
     [DataField]
     public HashSet<HumanoidVisualLayers> PermanentlyHidden = new();
+
+    [DataField]
+    public Dictionary<HumanoidVisualLayers, SlotFlags> HiddenLayers = new();
 
     [DataField]
     public Dictionary<HumanoidVisualLayers, CustomBaseLayerInfo> CustomBaseLayers = new();

@@ -10,6 +10,7 @@ using Content.Server.Popups;
 using Content.Shared.Atmos;
 using Content.Shared.Body.Components;
 using Content.Shared.Body.Systems;
+using Content.Shared.Changeling.Systems;
 using Content.Shared.Damage;
 using Content.Shared.Damage.Prototypes;
 using Content.Shared.Damage.Systems;
@@ -45,6 +46,7 @@ using Robust.Shared.Map.Components;
 using Robust.Shared.Physics;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
+using Robust.Shared.Timing;
 
 namespace Content.Server.DeadSpace.Psychiatry;
 
@@ -52,7 +54,6 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
 {
     [Dependency] private readonly BloodstreamSystem _blood = default!;
     [Dependency] private readonly BlindableSystem _blinding = default!;
-    [Dependency] private readonly ChatSystem _chat = default!;
     [Dependency] private readonly NewStatusEffectsSystem _newStatus = default!;
     [Dependency] private readonly DamageableSystem _damageable = default!;
     [Dependency] private readonly DoAfterSystem _doAfter = default!;
@@ -73,6 +74,8 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
     [Dependency] private readonly IConfigurationManager _cfg = default!;
     [Dependency] private readonly PuddleSystem _puddles = default!;
     [Dependency] private readonly TagSystem _tag = default!;
+    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
+    [Dependency] private readonly IGameTiming _timing = default!;
 
     private static readonly Vector2i[] Cardinal = [new(1, 0), new(-1, 0), new(0, 1), new(0, -1)];
 
@@ -89,100 +92,22 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
     public override void Initialize()
     {
         base.Initialize();
-        SubscribeLocalEvent<LobotomyToolComponent, AfterInteractEvent>(OnLobotomyInteract);
-        SubscribeLocalEvent<LobotomyToolComponent, LobotomyDoAfterEvent>(OnLobotomyDoAfter);
         SubscribeLocalEvent<ShockTherapyComponent, AfterInteractEvent>(OnShockInteract);
         SubscribeLocalEvent<ShockTherapyComponent, ShockTherapyDoAfterEvent>(OnShockDoAfter);
         SubscribeLocalEvent<FirmwarePatchComponent, AfterInteractEvent>(OnFirmwareInteract);
         SubscribeLocalEvent<FirmwarePatchComponent, FirmwarePatchDoAfterEvent>(OnFirmwareDoAfter);
         SubscribeLocalEvent<HardResetProbeComponent, AfterInteractEvent>(OnHardResetInteract);
         SubscribeLocalEvent<HardResetProbeComponent, HardResetDoAfterEvent>(OnHardResetDoAfter);
-        SubscribeLocalEvent<IonScrubberComponent, AfterInteractEvent>(OnIonInteract);
-        SubscribeLocalEvent<IonScrubberComponent, IonScrubDoAfterEvent>(OnIonDoAfter);
         SubscribeLocalEvent<CascadeSpikeComponent, AfterInteractEvent>(OnCascadeInteract);
         SubscribeLocalEvent<CascadeSpikeComponent, CascadeSpikeDoAfterEvent>(OnCascadeDoAfter);
         SubscribeLocalEvent<AdminCurePatchComponent, AfterInteractEvent>(OnAdminPatchInteract);
         SubscribeLocalEvent<AdminCurePatchComponent, AdminCurePatchDoAfterEvent>(OnAdminPatchDoAfter);
         SubscribeLocalEvent<ExpandICChatRecipientsEvent>(OnChatRecipients);
+        SubscribeLocalEvent<RegenerativeStasisExitedEvent>(OnStasisExited);
     }
 
     private static readonly EntProtoId DeafEffect = "StatusEffectDeaf";
     private static readonly EntProtoId MutedEffect = "StatusEffectMuted";
-
-    private void OnLobotomyInteract(Entity<LobotomyToolComponent> ent, ref AfterInteractEvent args)
-    {
-        if (args.Handled || !args.CanReach || args.Target is not { } target)
-            return;
-        if (target == args.User)
-        {
-            _popup.PopupEntity(Loc.GetString("psychiatry-no-self"), args.User, args.User);
-            return;
-        }
-
-        if (!HasComp<MobStateComponent>(target) && !HasComp<BodyComponent>(target))
-        {
-            _popup.PopupEntity(Loc.GetString("psychiatry-lobotomy-not-creature"), args.User, args.User);
-            return;
-        }
-
-        if (_psychiatry.IsPositronic(target))
-        {
-            _popup.PopupEntity(Loc.GetString("psychiatry-lobotomy-positronic"), args.User, args.User);
-            return;
-        }
-
-        StartLobotomyStep(ent, args.User, target, 0);
-        args.Handled = true;
-    }
-
-    private void StartLobotomyStep(Entity<LobotomyToolComponent> tool, EntityUid user, EntityUid target, int step)
-    {
-        if (step >= tool.Comp.Steps)
-            return;
-
-        var doAfter = new DoAfterArgs(EntityManager, user, tool.Comp.StepSeconds, new LobotomyDoAfterEvent(step), tool, target: target, used: tool)
-        {
-            BreakOnMove = true,
-            BreakOnDamage = true,
-            NeedHand = true,
-            DistanceThreshold = 1.5f,
-        };
-        _doAfter.TryStartDoAfter(doAfter);
-        _audio.PlayPvs(new SoundPathSpecifier("/Audio/Effects/clang.ogg"), tool);
-    }
-
-    private void OnLobotomyDoAfter(Entity<LobotomyToolComponent> ent, ref LobotomyDoAfterEvent args)
-    {
-        if (args.Cancelled || args.Handled || args.Target is not { } target)
-            return;
-        args.Handled = true;
-
-        if (_random.Prob(_cfg.GetCVar(CCCCVars.PsychiatryLobotomyFaultChance)))
-            ApplyLobotomyComplication(target);
-
-        var next = args.StepIndex + 1;
-        if (next < ent.Comp.Steps)
-        {
-            StartLobotomyStep(ent, args.User, target, next);
-            return;
-        }
-
-        _psychiatry.AdjustStage(target, -3, "lobotomy");
-        _audio.PlayPvs(new SoundPathSpecifier("/Audio/Effects/clang.ogg"), target);
-    }
-
-    private void ApplyLobotomyComplication(EntityUid target)
-    {
-        var dmg = new DamageSpecifier();
-        dmg.DamageDict["Blunt"] = FixedPoint2.New(18);
-        dmg.DamageDict["Slash"] = FixedPoint2.New(12);
-        _damageable.TryChangeDamage(target, dmg);
-        if (TryComp<BloodstreamComponent>(target, out var blood))
-            _blood.TryModifyBleedAmount((target, blood), 14f);
-        _chat.TryEmoteWithChat(target, "Scream", ignoreActionBlocker: true, forceEmote: true);
-
-        ApplySensoryFault(target);
-    }
 
     private void ApplySensoryFault(EntityUid target)
     {
@@ -199,7 +124,7 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
                 break;
         }
 
-        _popup.PopupEntity(Loc.GetString("psychiatry-lobotomy-complication"), target, PopupType.LargeCaution);
+        _popup.PopupEntity(Loc.GetString("psychiatry-sensory-fault"), target, PopupType.LargeCaution);
     }
 
     private void ApplyBlind(EntityUid target)
@@ -220,6 +145,18 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
     private void ApplyMute(EntityUid target)
     {
         _newStatus.TrySetStatusEffectDuration(target, MutedEffect);
+    }
+
+    private void OnStasisExited(ref RegenerativeStasisExitedEvent args)
+    {
+        _psychiatry.ClearIllness(args.Target, "stasis");
+        _newStatus.TryRemoveStatusEffect(args.Target, DeafEffect);
+        _newStatus.TryRemoveStatusEffect(args.Target, MutedEffect);
+
+        if (!TryComp<BlindableComponent>(args.Target, out var blindable) || blindable.EyeDamage <= 0)
+            return;
+
+        _blinding.AdjustEyeDamage((args.Target, blindable), -blindable.EyeDamage);
     }
 
     private void OnChatRecipients(ExpandICChatRecipientsEvent ev)
@@ -270,6 +207,10 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
         var hit = living ? ent.Comp.ShockDamage / steps : ent.Comp.ShockDamage;
         var name = Identity.Name(target, EntityManager);
         _popup.PopupEntity(Loc.GetString("psychiatry-shock-target", ("target", name)), ent.Owner, args.User);
+        ent.Comp.Progress = 0;
+        ent.Comp.ProgressSteps = steps;
+        ent.Comp.ProgressHit = hit;
+        ent.Comp.ProgressLiving = living;
         if (StartShockStep(ent, args.User, target, 0, steps, totalSeconds / steps, hit, living))
             args.Handled = true;
     }
@@ -294,8 +235,8 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
         };
         var doAfter = new DoAfterArgs(EntityManager, user, stepSeconds, ev, tool, target: target, used: tool)
         {
-            BreakOnMove = true,
-            BreakOnDamage = true,
+            BreakOnMove = false,
+            BreakOnDamage = false,
             NeedHand = true,
             DistanceThreshold = 1.5f,
         };
@@ -314,20 +255,30 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
             return;
         }
 
-        if (args.Step == 0 && !_powerCell.TryUseActivatableCharge(ent.Owner, user: args.User))
+        if (ent.Comp.Progress == 0 && !_powerCell.TryUseActivatableCharge(ent.Owner, user: args.User))
             return;
 
-        if (args.Living)
+        ent.Comp.Progress++;
+        var finished = false;
+        if (ent.Comp.ProgressLiving)
         {
-            StrikeLiving(ent, target, args.User, args.HitDamage, args.Step == 0);
-            if (args.Step + 1 >= args.Steps)
+            StrikeLiving(ent, target, args.User, ent.Comp.ProgressHit, ent.Comp.Progress == 1);
+            if (ent.Comp.Progress >= ent.Comp.ProgressSteps)
+            {
+                ent.Comp.Progress = 0;
+                finished = true;
                 FinishLivingShock(ent, target, args.User);
+            }
             else
-                StartShockStep(ent, args.User, target, args.Step + 1, args.Steps, args.StepSeconds, args.HitDamage, true);
+            {
+                StartShockStep(ent, args.User, target, ent.Comp.Progress, ent.Comp.ProgressSteps, args.StepSeconds, ent.Comp.ProgressHit, true);
+            }
         }
         else
         {
-            var damage = (int) args.HitDamage;
+            ent.Comp.Progress = 0;
+            finished = true;
+            var damage = (int) ent.Comp.ProgressHit;
             switch (Classify(target))
             {
                 case ShockSurface.Body:
@@ -352,10 +303,31 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
             }
 
             _audio.PlayPvs(new SoundPathSpecifier("/Audio/Items/Defib/defib_zap.ogg"), target);
+            PulseShockVisual(ent);
         }
 
-        if (args.Step + 1 >= args.Steps && !_powerCell.HasActivatableCharge(ent.Owner))
+        if (finished && !_powerCell.HasActivatableCharge(ent.Owner))
             _toggle.TryDeactivate(ent.Owner);
+    }
+
+    public override void Update(float frameTime)
+    {
+        base.Update(frameTime);
+        var now = _timing.CurTime;
+        var query = EntityQueryEnumerator<ShockTherapyComponent>();
+        while (query.MoveNext(out var uid, out var comp))
+        {
+            if (comp.ShockUntil == default || now < comp.ShockUntil)
+                continue;
+            comp.ShockUntil = default;
+            _appearance.SetData(uid, ShockTherapyVisuals.Shocking, false);
+        }
+    }
+
+    private void PulseShockVisual(Entity<ShockTherapyComponent> ent)
+    {
+        ent.Comp.ShockUntil = _timing.CurTime + TimeSpan.FromSeconds(0.8);
+        _appearance.SetData(ent.Owner, ShockTherapyVisuals.Shocking, true);
     }
 
     private void StrikeLiving(Entity<ShockTherapyComponent> ent, EntityUid target, EntityUid user, float hitDamage, bool first)
@@ -370,7 +342,7 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
                 crush.DamageDict["Blunt"] = FixedPoint2.New(35);
                 _damageable.TryChangeDamage(target, crush, origin: user);
                 if (TryComp<BloodstreamComponent>(target, out var blood))
-                    _blood.TryModifyBleedAmount((target, blood), 8f);
+                    _blood.TryModifyBleedAmount((target, blood), 2f);
                 _popup.PopupEntity(Loc.GetString("psychiatry-shock-no-gag"), target, PopupType.LargeCaution);
             }
         }
@@ -380,6 +352,7 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
         _damageable.TryChangeDamage(target, shock, origin: user);
         _jitter.DoJitter(target, TimeSpan.FromSeconds(0.8), refresh: true, amplitude: 16f, frequency: 8f);
         _audio.PlayPvs(new SoundPathSpecifier("/Audio/Items/Defib/defib_zap.ogg"), target);
+        PulseShockVisual(ent);
         ShockPuddleNeighbors(ent.Owner, target, Math.Max(1, (int) hitDamage), user);
         EvaporateContacts(target);
     }
@@ -401,10 +374,11 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
             return;
         }
 
-        _psychiatry.AdjustStage(target, -2, "shock-therapy");
+        _psychiatry.AdjustStage(target, -(int) SchizophreniaStage.Acute, "shock-therapy");
+        _psychiatry.HoldOnset(target);
         if (_random.Prob(_cfg.GetCVar(CCCCVars.PsychiatryShockFaultChance)))
             ApplySensoryFault(target);
-        _popup.PopupEntity(Loc.GetString("psychiatry-shock-done", ("stages", 2)), user, user, PopupType.Medium);
+        _popup.PopupEntity(Loc.GetString("psychiatry-shock-done", ("stages", (int) SchizophreniaStage.Acute)), user, user, PopupType.Medium);
     }
 
     private void ShockBody(Entity<ShockTherapyComponent> ent, EntityUid target, EntityUid user, int damage)
@@ -418,7 +392,7 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
             crush.DamageDict["Blunt"] = FixedPoint2.New(35);
             _damageable.TryChangeDamage(target, crush, origin: user);
             if (TryComp<BloodstreamComponent>(target, out var blood))
-                _blood.TryModifyBleedAmount((target, blood), 8f);
+                _blood.TryModifyBleedAmount((target, blood), 2f);
             _popup.PopupEntity(Loc.GetString("psychiatry-shock-no-gag"), target, PopupType.LargeCaution);
         }
 
@@ -434,8 +408,9 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
             return;
         }
 
-        _psychiatry.AdjustStage(target, -2, "shock-therapy");
-        _popup.PopupEntity(Loc.GetString("psychiatry-shock-done", ("stages", 2)), user, user, PopupType.Medium);
+        _psychiatry.AdjustStage(target, -(int) SchizophreniaStage.Acute, "shock-therapy");
+        _psychiatry.HoldOnset(target);
+        _popup.PopupEntity(Loc.GetString("psychiatry-shock-done", ("stages", (int) SchizophreniaStage.Acute)), user, user, PopupType.Medium);
     }
 
     private void ShockPuddleNeighbors(EntityUid source, EntityUid body, int damage, EntityUid except)
@@ -672,7 +647,8 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
 
         if (!_psychiatry.IsPositronic(target))
         {
-            _popup.PopupEntity(Loc.GetString("psychiatry-cyber-organic"), user, user);
+            if (HasComp<MobStateComponent>(target) || HasComp<BodyComponent>(target))
+                _popup.PopupEntity(Loc.GetString("psychiatry-cyber-organic"), user, user);
             return true;
         }
 
@@ -732,10 +708,61 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
     {
         if (args.Handled || !args.CanReach || args.Target is not { } target)
             return;
-        if (RefuseUnlessPositronic(args.User, target, true, out _))
+
+        if (!_toggle.IsActivated(ent.Owner))
+        {
+            _popup.PopupEntity(Loc.GetString("psychiatry-probe-not-on"), ent.Owner, args.User);
             return;
-        if (StartToolDoAfter(ent, args.User, target, ent.Comp.Delay, new HardResetDoAfterEvent()))
+        }
+
+        if (target == args.User)
+        {
+            _popup.PopupEntity(Loc.GetString("psychiatry-no-self"), args.User, args.User);
+            return;
+        }
+
+        if (RefuseUnlessPositronic(args.User, target, false, out _))
+            return;
+
+        if (!_powerCell.HasActivatableCharge(ent.Owner, user: args.User))
+            return;
+
+        const int steps = 4;
+        var totalSeconds = _random.NextFloat(ent.Comp.DoAfterMinSeconds, ent.Comp.DoAfterMaxSeconds);
+        var hit = ent.Comp.ShockDamage / steps;
+        var name = Identity.Name(target, EntityManager);
+        _popup.PopupEntity(Loc.GetString("psychiatry-probe-target", ("target", name)), ent.Owner, args.User);
+        ent.Comp.Progress = 0;
+        ent.Comp.ProgressSteps = steps;
+        ent.Comp.ProgressHit = hit;
+        if (StartProbeStep(ent, args.User, target, 0, steps, totalSeconds / steps, hit))
             args.Handled = true;
+    }
+
+    private bool StartProbeStep(
+        Entity<HardResetProbeComponent> tool,
+        EntityUid user,
+        EntityUid target,
+        int step,
+        int steps,
+        float stepSeconds,
+        float hitDamage)
+    {
+        var ev = new HardResetDoAfterEvent
+        {
+            Step = step,
+            Steps = steps,
+            StepSeconds = stepSeconds,
+            HitDamage = hitDamage,
+        };
+        var doAfter = new DoAfterArgs(EntityManager, user, stepSeconds, ev, tool, target: target, used: tool)
+        {
+            BreakOnMove = false,
+            BreakOnDamage = false,
+            NeedHand = true,
+            DistanceThreshold = 1.5f,
+        };
+        return _doAfter.TryStartDoAfter(doAfter);
     }
 
     private void OnHardResetDoAfter(Entity<HardResetProbeComponent> ent, ref HardResetDoAfterEvent args)
@@ -743,48 +770,48 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
         if (args.Cancelled || args.Handled || args.Target is not { } target)
             return;
         args.Handled = true;
-        if (RefuseUnlessPositronic(args.User, target, true, out _))
-            return;
 
-        if (_random.Prob(_cfg.GetCVar(CCCCVars.PsychiatryHardResetFaultChance)))
+        if (!_toggle.IsActivated(ent.Owner))
         {
-            var shock = new DamageSpecifier();
-            shock.DamageDict["Shock"] = FixedPoint2.New(12);
-            _damageable.TryChangeDamage(target, shock, origin: args.User);
-            ApplySensoryFault(target);
+            _popup.PopupEntity(Loc.GetString("psychiatry-probe-not-on"), ent.Owner, args.User);
+            return;
         }
 
-        _psychiatry.AdjustStage(target, -3, "hard-reset");
-        _audio.PlayPvs(new SoundPathSpecifier("/Audio/Effects/clang.ogg"), target);
-    }
-
-    private void OnIonInteract(Entity<IonScrubberComponent> ent, ref AfterInteractEvent args)
-    {
-        if (args.Handled || !args.CanReach || args.Target is not { } target)
-            return;
-        if (RefuseUnlessPositronic(args.User, target, true, out _))
-            return;
-        if (StartToolDoAfter(ent, args.User, target, ent.Comp.Delay, new IonScrubDoAfterEvent()))
-            args.Handled = true;
-    }
-
-    private void OnIonDoAfter(Entity<IonScrubberComponent> ent, ref IonScrubDoAfterEvent args)
-    {
-        if (args.Cancelled || args.Handled || args.Target is not { } target)
-            return;
-        args.Handled = true;
-        if (RefuseUnlessPositronic(args.User, target, true, out var illness))
+        if (ent.Comp.Progress == 0 && !_powerCell.TryUseActivatableCharge(ent.Owner, user: args.User))
             return;
 
+        ent.Comp.Progress++;
         var shock = new DamageSpecifier();
-        shock.DamageDict["Shock"] = FixedPoint2.New(ent.Comp.ShockDamage);
+        shock.DamageDict["Shock"] = FixedPoint2.New(ent.Comp.ProgressHit);
         _damageable.TryChangeDamage(target, shock, origin: args.User);
-        _jitter.DoJitter(target, TimeSpan.FromSeconds(0.8), refresh: true, amplitude: 12f, frequency: 8f);
+        _jitter.DoJitter(target, TimeSpan.FromSeconds(0.8), refresh: true, amplitude: 16f, frequency: 8f);
         _audio.PlayPvs(new SoundPathSpecifier("/Audio/Items/Defib/defib_zap.ogg"), target);
-        if (_random.Prob(_cfg.GetCVar(CCCCVars.PsychiatryIonFaultChance)))
-            ApplySensoryFault(target);
-        _psychiatry.AdjustStage(target, -2, "ion-scrub");
-        _popup.PopupEntity(Loc.GetString("psychiatry-shock-done", ("stages", 2)), args.User, args.User, PopupType.Medium);
+
+        var finished = ent.Comp.Progress >= ent.Comp.ProgressSteps;
+        if (finished)
+        {
+            ent.Comp.Progress = 0;
+            if (TryComp(target, out SchizophreniaComponent? illness)
+                && illness.Kind == PsychiatryIllnessKind.Cyberpsychosis)
+            {
+                _psychiatry.AdjustStage(target, -(int) SchizophreniaStage.Acute, "hard-reset");
+                _psychiatry.HoldOnset(target);
+                if (_random.Prob(_cfg.GetCVar(CCCCVars.PsychiatryShockFaultChance)))
+                    ApplySensoryFault(target);
+                _popup.PopupEntity(Loc.GetString("psychiatry-probe-done"), args.User, args.User, PopupType.Medium);
+            }
+            else
+            {
+                _popup.PopupEntity(Loc.GetString("psychiatry-shock-zapped"), args.User, args.User, PopupType.Medium);
+            }
+        }
+        else
+        {
+            StartProbeStep(ent, args.User, target, ent.Comp.Progress, ent.Comp.ProgressSteps, args.StepSeconds, ent.Comp.ProgressHit);
+        }
+
+        if (finished && !_powerCell.HasActivatableCharge(ent.Owner))
+            _toggle.TryDeactivate(ent.Owner);
     }
 
     private void OnCascadeInteract(Entity<CascadeSpikeComponent> ent, ref AfterInteractEvent args)
@@ -805,7 +832,7 @@ public sealed class PsychiatryTreatmentSystem : EntitySystem
         if (RefuseUnlessPositronic(args.User, target, false, out _))
             return;
 
-        _psychiatry.TryApplyCyber(target, SchizophreniaStage.Latent, "cascade-spike", ignoreCooldown: true);
+        _psychiatry.TryApplyCyber(target, SchizophreniaStage.Latent, "cascade-spike", ignoreCooldown: true, forced: true);
         _popup.PopupEntity(Loc.GetString("psychiatry-cyber-onset"), target, PopupType.MediumCaution);
         QueueDel(ent.Owner);
     }
