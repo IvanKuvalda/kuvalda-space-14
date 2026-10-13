@@ -4,7 +4,6 @@ surgery-error-wrong-tool = The current step needs a different tool.
 surgery-clean-self = You wash the dirt off your hands.
 surgery-clean-other = You wash the dirt off.
 
-# Complications
 surgery-complication-infection = Infection
 surgery-complication-infection-message = The wound is infected: dirt got inside.
 surgery-complication-infection-patient = The wound burns and throbs.
@@ -17,7 +16,6 @@ surgery-complication-jerk-patient = You jerked from the pain!
 surgery-complication-contamination = Contamination
 surgery-complication-contamination-message = Hands and instrument are filthy.
 
-# Steps
 surgery-step-incision-start = You cut into the flesh.
 surgery-step-incision-success = The incision is made.
 surgery-step-incision-crude = You hack the flesh open.
@@ -36,7 +34,6 @@ surgery-step-cauterize-success = The incision is cauterized.
 surgery-step-resin-seal-start = You press your hands against the resin.
 surgery-step-resin-seal-success = The incision closes over with resin.
 
-# Operations
 surgery-opening = Opening
 surgery-opening-desc = Cut and open the cavity.
 surgery-closing = Closing

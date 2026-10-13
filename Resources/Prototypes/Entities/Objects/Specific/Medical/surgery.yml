@@ -31,12 +31,10 @@
   parent: BaseToolSurgery
   description: A surgical tool used to cauterize open wounds.
   components:
-  # Surgery-start
   - type: Tag
     tags:
     - SurgeryTool
     - SurgeryToolCautery
-  # Surgery-end
   - type: Sprite
     sprite: Objects/Specific/Medical/Surgery/cautery.rsi
     state: cautery
@@ -58,12 +56,10 @@
   parent: BaseToolSurgery
   description: A surgical drill for making holes into hard material.
   components:
-  # Surgery-start
   - type: Tag
     tags:
     - SurgeryTool
     - SurgeryToolDrill
-  # Surgery-end
   - type: Sprite
     sprite: Objects/Specific/Medical/Surgery/drill.rsi
     state: drill
@@ -89,12 +85,10 @@
   parent: BaseToolSurgery
   description: A surgical tool used to make incisions into flesh.
   components:
-  # Surgery-start
   - type: Tag
     tags:
     - SurgeryTool
     - SurgeryToolScalpel
-  # Surgery-end
   - type: Sharp
     butcherDelayModifier: 1.5 # Butchering with a scalpel, regardless of the type, will take 50% longer
   - type: Tool
@@ -187,12 +181,10 @@
   parent: BaseToolSurgery
   description: A surgical tool used to hold open incisions.
   components:
-  # Surgery-start
   - type: Tag
     tags:
     - SurgeryTool
     - SurgeryToolRetractor
-  # Surgery-end
   - type: Sprite
     sprite: Objects/Specific/Medical/Surgery/scissors.rsi
     state: retractor
@@ -206,12 +198,10 @@
   parent: Retractor
   description: A surgical tool used to compress blood vessels to prevent bleeding.
   components:
-  # Surgery-start
   - type: Tag
     tags:
     - SurgeryTool
     - SurgeryToolHemostat
-  # Surgery-end
   - type: Sprite
     state: hemostat
   - type: Item
@@ -232,12 +222,10 @@
   parent: BaseToolSurgery
   description: For cutting wood and other objects to pieces. Or sawing bones, in case of emergency.
   components:
-  # Surgery-start
   - type: Tag
     tags:
     - SurgeryTool
     - SurgeryToolSaw
-  # Surgery-end
   - type: Sharp
   - type: Utensil
     types:

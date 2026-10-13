@@ -1,6 +1,3 @@
-# Операции: шаги, условия доступности, осложнения и последствия.
-
-# Вскрытие: разрез + растянуть.
 - type: surgery
   id: SurgeryOpening
   name: surgery-opening
@@ -25,7 +22,6 @@
             types:
               Slash: -2
 
-# Ушивание: зажать сосуды + прижечь. Доступно только после вскрытия.
 - type: surgery
   id: SurgeryClosing
   name: surgery-closing
@@ -43,8 +39,6 @@
     - SurgeryComplicationInfection
     - SurgeryComplicationContamination
 
-# Операция только для дионы: разрез (топором/пилой) и заращивание смолой руками.
-# Показывает развилку на уровне самой операции, а не шага.
 - type: surgery
   id: SurgeryDionaResinSeal
   name: surgery-diona-resin-seal

@@ -2,7 +2,6 @@ using Content.Shared.Bed.Sleep;
 
 namespace Content.Shared.DeadSpace.Surgery.Conditions;
 
-/// <summary>Проверяет, спит ли цель (наркоз). С inverted — «в сознании».</summary>
 public sealed partial class SurgeryConditionSleeping : SurgeryConditionBase<SurgeryConditionSleeping>
 {
     [DataField]

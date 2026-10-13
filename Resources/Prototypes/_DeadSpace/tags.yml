@@ -536,7 +536,6 @@
 - type: Tag
   id: GasGrenadeShellBlue
 
-# Хирургия: роли инструментов для развилок операций.
 - type: Tag
   id: SurgeryToolScalpel
 

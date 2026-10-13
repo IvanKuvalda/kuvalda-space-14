@@ -3,7 +3,6 @@ using Content.Shared.Whitelist;
 
 namespace Content.Shared.DeadSpace.Surgery.Conditions;
 
-/// <summary>Проверяет предмет в слоте инвентаря: маска, перчатки и т.д.</summary>
 public sealed partial class SurgeryConditionEquipment : SurgeryConditionBase<SurgeryConditionEquipment>
 {
     [DataField(required: true)]

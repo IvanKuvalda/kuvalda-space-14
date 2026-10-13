@@ -4,7 +4,6 @@ surgery-error-wrong-tool = Для текущего шага нужен друг�
 surgery-clean-self = Вы смываете грязь с рук.
 surgery-clean-other = Вы смываете грязь.
 
-# Осложнения
 surgery-complication-infection = Инфекция
 surgery-complication-infection-message = Рана инфицирована: грязь попала внутрь.
 surgery-complication-infection-patient = Рана горит и пульсирует.
@@ -17,7 +16,6 @@ surgery-complication-jerk-patient = Вы дёрнулись от боли!
 surgery-complication-contamination = Загрязнение
 surgery-complication-contamination-message = Руки и инструмент испачканы.
 
-# Шаги
 surgery-step-incision-start = Вы надрезаете плоть.
 surgery-step-incision-success = Разрез готов.
 surgery-step-incision-crude = Вы кое-как вспарываете плоть.
@@ -36,7 +34,6 @@ surgery-step-cauterize-success = Разрез прижжён.
 surgery-step-resin-seal-start = Вы прикладываете руки к смоле.
 surgery-step-resin-seal-success = Разрез зарастает смолой.
 
-# Операции
 surgery-opening = Вскрытие
 surgery-opening-desc = Разрезать и раскрыть полость.
 surgery-closing = Ушивание

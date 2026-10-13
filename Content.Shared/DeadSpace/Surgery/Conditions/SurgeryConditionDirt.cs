@@ -1,6 +1,5 @@
 namespace Content.Shared.DeadSpace.Surgery.Conditions;
 
-/// <summary>Проверяет загрязнение: руки хирурга, инструмент, стол, тело пациента.</summary>
 public sealed partial class SurgeryConditionDirt : SurgeryConditionBase<SurgeryConditionDirt>
 {
     [DataField]

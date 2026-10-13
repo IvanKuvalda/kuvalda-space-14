@@ -1,9 +1,6 @@
-# Шаги операций: варианты выполнения, которые выбираются по инструменту и условиям.
-
 - type: surgeryStep
   id: SurgeryStepIncision
   variants:
-    # Плоть + скальпель: обычный аккуратный разрез.
     - tool:
         tags:
           - SurgeryToolScalpel
@@ -24,7 +21,6 @@
               damage:
                 types:
                   Slash: 2
-    # Плоть + любой другой режущий: дольше и грубее.
     - qualities:
         - Slicing
       conditions:
@@ -46,7 +42,6 @@
                   Slash: 5
       complications:
         - SurgeryComplicationJerk
-    # Диона: смола не режется скальпелем, зато поддаётся топору или лому.
     - qualities:
         - Prying
       conditions:
@@ -67,7 +62,6 @@
                   Slash: 6
       complications:
         - SurgeryComplicationJerk
-    # Диона: хирургическая пила — чище топора, но дольше.
     - tool:
         tags:
           - SurgeryToolSaw
@@ -85,7 +79,6 @@
               damage:
                 types:
                   Slash: 3
-    # Скелет: плоти нет — нужна пила или дрель.
     - tool:
         tags:
           - SurgeryToolSaw
@@ -107,7 +100,6 @@
       complications:
         - SurgeryComplicationJerk
 
-# Растянуть разрез, чтобы добраться до внутренностей.
 - type: surgeryStep
   id: SurgeryStepRetract
   variants:
@@ -117,7 +109,6 @@
       duration: 2.5
       startMessage: surgery-step-retract-start
       successMessage: surgery-step-retract-success
-    # Грубая сила: любым хирургическим инструментом, дольше и с риском.
     - tool:
         tags:
           - SurgeryTool
@@ -135,7 +126,6 @@
       complications:
         - SurgeryComplicationJerk
 
-# Зажать сосуды.
 - type: surgeryStep
   id: SurgeryStepClamp
   variants:
@@ -152,7 +142,6 @@
             - !type:ModifyBleed
               amount: -4
 
-# Прижечь и закрыть разрез.
 - type: surgeryStep
   id: SurgeryStepCauterize
   variants:
@@ -173,7 +162,6 @@
                 types:
                   Heat: 2
 
-# Диона заращивает разрез смолой: шаг делается голыми руками.
 - type: surgeryStep
   id: SurgeryStepResinSeal
   variants:
@@ -191,7 +179,6 @@
               damage:
                 types:
                   Slash: -6
-        # Смола липнет к рукам: без перчаток хирург пачкается.
         - !type:SurgeryDirtEffect
           target: Surgeon
           amount: 20

@@ -4,10 +4,8 @@
   name: operating table
   description: Special medical table for surgery. This one just seems to be a useless prop, though.
   components:
-  # Surgery-start: стол, на который условия операции требуют уложить пациента.
   - type: OperatingTable
   - type: SurgeryDirtiness
-  # Surgery-end
   - type: Sprite
     sprite: Structures/Furniture/Tables/optable.rsi
     state: operating_table

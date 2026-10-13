@@ -9,9 +9,7 @@
   id: BaseMobSpecies
   abstract: true
   components:
-  # Surgery-start: тело можно оперировать; синтетики помечены SurgeryImmune.
   - type: SurgeryTarget
-  # Surgery-end
   - type: CorpseBurning # DS14
   - type: Sprite
     layers:
@@ -253,9 +251,7 @@
   id: BaseMobSpeciesOrganic
   abstract: true
   components:
-  # Surgery-start: загрязнение рук для органических видов.
   - type: SurgeryDirtiness
-  # Surgery-end
   # DS14-start: apply upstream satiation through the current shared organic-species base.
   - type: Satiation
     satiations:

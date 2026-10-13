@@ -4,7 +4,6 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Shared.DeadSpace.Surgery;
 
-/// <summary>Прогресс операций на теле: что начато, на каком шаге, что уже сделано.</summary>
 [RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class SurgeryProgressComponent : Component
 {

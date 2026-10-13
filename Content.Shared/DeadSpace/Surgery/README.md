@@ -25,8 +25,8 @@
   id: MyAppendectomy
   name: my-appendectomy
   priority: 0
-  requires: [SurgeryOpening]        # необязательно
-  repeatable: false                 # необязательно
+  requires: [SurgeryOpening]
+  repeatable: false
   conditions:
     - !type:SurgeryConditionMobState
       states: [Alive, Critical]

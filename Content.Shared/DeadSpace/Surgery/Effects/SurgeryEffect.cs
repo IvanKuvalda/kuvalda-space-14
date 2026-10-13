@@ -1,6 +1,5 @@
 namespace Content.Shared.DeadSpace.Surgery.Effects;
 
-/// <summary>Последствие шага, операции или осложнения: урон, кровотечение, реагент, загрязнение.</summary>
 [ImplicitDataDefinitionForInheritors]
 public abstract partial class SurgeryEffect
 {
@@ -34,7 +33,6 @@ public interface ISurgeryEffectRaiser
     void RaiseEffectEvent<T>(T effect, SurgeryContext context, float scale, EntityUid? user) where T : SurgeryEffectBase<T>;
 }
 
-/// <summary>Базовая система одного вида эффекта.</summary>
 public abstract partial class SurgeryEffectSystem<TEff> : EntitySystem where TEff : SurgeryEffectBase<TEff>
 {
     public override void Initialize()

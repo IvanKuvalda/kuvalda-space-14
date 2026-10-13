@@ -11,7 +11,6 @@ using Robust.Shared.Random;
 
 namespace Content.Server.DeadSpace.Surgery;
 
-/// <summary>Серверная часть хирургии: взаимодействие, DoAfter, шаги и осложнения.</summary>
 public sealed class SurgerySystem : SharedSurgerySystem
 {
     [Dependency] private readonly IPrototypeManager _prototype = default!;
@@ -50,7 +49,6 @@ public sealed class SurgerySystem : SharedSurgerySystem
             args.Handled = true;
     }
 
-    /// <summary>Возвращает true, если взаимодействие «съедено» хирургией.</summary>
     private bool TryStartSurgery(EntityUid patient, EntityUid user, EntityUid? tool)
     {
         TryComp<SurgeryProgressComponent>(patient, out var progress);
@@ -69,7 +67,6 @@ public sealed class SurgerySystem : SharedSurgerySystem
             return true;
         }
 
-        // Прогресс создаём только когда шаг действительно начался.
         EnsureComp<SurgeryProgressComponent>(patient);
 
         if (attempt.Variant.StartMessage is { } startMessage)
@@ -128,7 +125,6 @@ public sealed class SurgerySystem : SharedSurgerySystem
             return;
         }
 
-        // Перепроверяем шаг: за время DoAfter могли смениться инструмент, условия или прогресс.
         if (!TryGetStepIndex(surgery, progress, out var stepIndex) || stepIndex != args.StepIndex)
             return;
 

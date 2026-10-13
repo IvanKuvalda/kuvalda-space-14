@@ -4,7 +4,6 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Shared.DeadSpace.Surgery.Conditions;
 
-/// <summary>Проверяет анатомию цели по <see cref="BodyPrototype"/> (Human, Diona, Skeleton, ...).</summary>
 public sealed partial class SurgeryConditionAnatomy : SurgeryConditionBase<SurgeryConditionAnatomy>
 {
     [DataField]

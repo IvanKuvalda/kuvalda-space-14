@@ -1,35 +1,28 @@
-# Осложнения хирургии: шанс = база + модификаторы, включённые условиями.
-
 - type: surgeryComplication
   id: SurgeryComplicationInfection
   name: surgery-complication-infection
   chance: 0.0
   modifiers:
-    # Нет перчаток.
     - conditions:
         - !type:SurgeryConditionEquipment
           slot: gloves
           inverted: true
       add: 0.10
-    # Нет маски.
     - conditions:
         - !type:SurgeryConditionEquipment
           slot: mask
           inverted: true
       add: 0.05
-    # Грязные руки.
     - conditions:
         - !type:SurgeryConditionDirt
           target: Surgeon
           threshold: 20
       add: 0.15
-    # Грязный инструмент.
     - conditions:
         - !type:SurgeryConditionDirt
           target: Tool
           threshold: 20
       add: 0.15
-    # Мусор и лужи вокруг места операции.
     - conditions:
         - !type:SurgeryConditionTrashNearby
           radius: 2
@@ -51,12 +44,10 @@
   name: surgery-complication-bleeding
   chance: 0.03
   modifiers:
-    # Пациент в сознании: дёргается, сосуды толком не зажаты.
     - conditions:
         - !type:SurgeryConditionSleeping
           inverted: true
       add: 0.07
-    # Операция не на столе.
     - conditions:
         - !type:SurgeryConditionOperatingTable
           inverted: true
@@ -75,7 +66,6 @@
   name: surgery-complication-jerk
   chance: 0.0
   modifiers:
-    # Живой и не спящий пациент дёргается под инструментом.
     - conditions:
         - !type:SurgeryConditionSleeping
           inverted: true
@@ -98,7 +88,6 @@
   name: surgery-complication-contamination
   chance: 0.0
   modifiers:
-    # Работа без перчаток пачкает руки и инструмент.
     - conditions:
         - !type:SurgeryConditionEquipment
           slot: gloves

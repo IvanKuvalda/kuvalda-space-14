@@ -2,7 +2,6 @@ using Content.Shared.Buckle.Components;
 
 namespace Content.Shared.DeadSpace.Surgery.Conditions;
 
-/// <summary>Проверяет, что пациент лежит на операционном столе.</summary>
 public sealed partial class SurgeryConditionOperatingTable : SurgeryConditionBase<SurgeryConditionOperatingTable>
 {
     [DataField]

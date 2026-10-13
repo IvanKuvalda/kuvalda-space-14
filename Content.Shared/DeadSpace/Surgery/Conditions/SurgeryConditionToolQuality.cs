@@ -4,7 +4,6 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Shared.DeadSpace.Surgery.Conditions;
 
-/// <summary>Проверяет качества предмета: Slicing, Sawing, Prying и т.д.</summary>
 public sealed partial class SurgeryConditionToolQuality : SurgeryConditionBase<SurgeryConditionToolQuality>
 {
     [DataField]

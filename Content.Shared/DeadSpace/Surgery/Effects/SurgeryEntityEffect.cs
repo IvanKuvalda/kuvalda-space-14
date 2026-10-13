@@ -2,7 +2,6 @@ using Content.Shared.EntityEffects;
 
 namespace Content.Shared.DeadSpace.Surgery.Effects;
 
-/// <summary>Прогоняет обычные <see cref="EntityEffect"/> (урон, реагенты, статусы) по выбранной сущности.</summary>
 public sealed partial class SurgeryEntityEffect : SurgeryEffectBase<SurgeryEntityEffect>
 {
     [DataField]

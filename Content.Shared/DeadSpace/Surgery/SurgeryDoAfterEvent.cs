@@ -5,10 +5,6 @@ using Robust.Shared.Serialization;
 
 namespace Content.Shared.DeadSpace.Surgery;
 
-/// <summary>
-/// DoAfter шага операции. Хранит, какую операцию и какой шаг игрок выполняет,
-/// чтобы шаг нельзя было подменить во время выполнения.
-/// </summary>
 [Serializable, NetSerializable]
 public sealed partial class SurgeryDoAfterEvent : SimpleDoAfterEvent
 {

@@ -4,9 +4,6 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Shared.DeadSpace.Surgery;
 
-/// <summary>
-/// Результат подбора шага: какую операцию и каким вариантом сейчас выполняет игрок.
-/// </summary>
 public readonly record struct SurgeryAttempt(
     SurgeryPrototype Surgery,
     SurgeryStepPrototype Step,

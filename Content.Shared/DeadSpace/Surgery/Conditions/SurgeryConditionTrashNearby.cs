@@ -5,7 +5,6 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Shared.DeadSpace.Surgery.Conditions;
 
-/// <summary>Считает грязь вокруг места операции: мусор, лужи, трупы.</summary>
 public sealed partial class SurgeryConditionTrashNearby : SurgeryConditionBase<SurgeryConditionTrashNearby>
 {
     [DataField]

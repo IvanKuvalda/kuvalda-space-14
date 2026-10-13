@@ -1,6 +1,5 @@
 namespace Content.Shared.DeadSpace.Surgery.Effects;
 
-/// <summary>Меняет загрязнение сущности. Отрицательное значение отмывает.</summary>
 public sealed partial class SurgeryDirtEffect : SurgeryEffectBase<SurgeryDirtEffect>
 {
     [DataField]

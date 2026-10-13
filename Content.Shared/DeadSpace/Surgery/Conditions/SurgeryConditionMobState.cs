@@ -3,7 +3,6 @@ using Content.Shared.Mobs.Systems;
 
 namespace Content.Shared.DeadSpace.Surgery.Conditions;
 
-/// <summary>Проверяет состояние мобика: живой, в крите, мёртвый.</summary>
 public sealed partial class SurgeryConditionMobState : SurgeryConditionBase<SurgeryConditionMobState>
 {
     [DataField]

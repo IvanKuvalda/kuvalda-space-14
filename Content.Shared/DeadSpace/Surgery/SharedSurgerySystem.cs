@@ -10,9 +10,6 @@ using Robust.Shared.Timing;
 
 namespace Content.Shared.DeadSpace.Surgery;
 
-/// <summary>
-/// Ядро хирургии: сопоставляет инструмент, цель и обстоятельства с прототипами операций.
-/// </summary>
 public partial class SharedSurgerySystem : EntitySystem, ISurgeryConditionRaiser, ISurgeryEffectRaiser
 {
     [Dependency] private readonly IPrototypeManager _prototype = default!;
@@ -35,7 +32,6 @@ public partial class SharedSurgerySystem : EntitySystem, ISurgeryConditionRaiser
             _surgeriesDirty = true;
     }
 
-    /// <summary>Все операции, отсортированные по приоритету, затем по ID.</summary>
     public IReadOnlyList<SurgeryPrototype> Surgeries
     {
         get
@@ -65,7 +61,6 @@ public partial class SharedSurgerySystem : EntitySystem, ISurgeryConditionRaiser
         _surgeriesDirty = false;
     }
 
-    /// <summary>Собрать контекст операции: кто, над кем, чем и на чём.</summary>
     public SurgeryContext CreateContext(
         EntityUid patient,
         EntityUid? surgeon = null,
@@ -86,13 +81,11 @@ public partial class SharedSurgerySystem : EntitySystem, ISurgeryConditionRaiser
         return new SurgeryContext(patient, surgeon, tool, table, surgery, step, stepIndex);
     }
 
-    /// <summary>Можно ли вообще оперировать эту цель: роботы помечены <see cref="SurgeryImmuneComponent"/>.</summary>
     public bool IsOperable(EntityUid patient)
     {
         return !HasComp<SurgeryImmuneComponent>(patient);
     }
 
-    /// <summary>Проверить список условий. Пустой список или null — условия выполнены.</summary>
     public bool ConditionsMet(SurgeryCondition[]? conditions, SurgeryContext context)
     {
         if (conditions == null)
@@ -114,10 +107,6 @@ public partial class SharedSurgerySystem : EntitySystem, ISurgeryConditionRaiser
         return ev.Result;
     }
 
-    /// <summary>
-    /// Подходит ли инструмент под требования варианта шага.
-    /// Вариант без требований — шаг голыми руками, он сработает только без предмета в руке.
-    /// </summary>
     public bool ToolMatches(SurgeryStepVariant variant, EntityUid? tool)
     {
         var needsTool = variant.Tool != null || variant.Qualities.Count > 0;
@@ -143,10 +132,6 @@ public partial class SharedSurgerySystem : EntitySystem, ISurgeryConditionRaiser
         return true;
     }
 
-    /// <summary>
-    /// Выбрать вариант шага: первый, чей инструмент подходит и чьи условия проходят.
-    /// Здесь работают развилки операций от ситуации.
-    /// </summary>
     public bool TryGetVariant(
         SurgeryStepPrototype step,
         EntityUid? tool,
@@ -169,14 +154,12 @@ public partial class SharedSurgerySystem : EntitySystem, ISurgeryConditionRaiser
         return false;
     }
 
-    /// <summary>Номер шага, который операция сейчас должна выполнять.</summary>
     public bool TryGetStepIndex(SurgeryPrototype surgery, SurgeryProgressComponent progress, out int stepIndex)
     {
         stepIndex = progress.Active == surgery.ID ? progress.StepIndex : 0;
         return stepIndex >= 0 && stepIndex < surgery.Steps.Length;
     }
 
-    /// <summary>Доступна ли операция на этом теле: требования, условия, повторяемость.</summary>
     public bool IsAvailable(
         SurgeryPrototype surgery,
         SurgeryProgressComponent progress,
@@ -200,10 +183,6 @@ public partial class SharedSurgerySystem : EntitySystem, ISurgeryConditionRaiser
         return ConditionsMet(surgery.Conditions, context);
     }
 
-    /// <summary>
-    /// Найти шаг, который игрок может выполнить этим инструментом.
-    /// Начатую операцию нельзя подменить другой; null-прогресс значит «ещё ничего не делали».
-    /// </summary>
     public bool TryFindStep(
         EntityUid patient,
         SurgeryProgressComponent? progress,
@@ -216,7 +195,6 @@ public partial class SharedSurgerySystem : EntitySystem, ISurgeryConditionRaiser
         if (!IsOperable(patient))
             return false;
 
-        // Пустой прогресс на один вызов: не засоряем тело компонентом, если операция так и не началась.
         progress ??= new SurgeryProgressComponent();
 
         if (progress.Active is { } activeId && _prototype.TryIndex(activeId, out var activeSurgery))
@@ -257,7 +235,6 @@ public partial class SharedSurgerySystem : EntitySystem, ISurgeryConditionRaiser
         return true;
     }
 
-    /// <summary>Применить последствия с учётом их шансов.</summary>
     public void ApplyEffects(SurgeryEffect[]? effects, SurgeryContext context, EntityUid? user = null, float scale = 1f)
     {
         if (effects == null)
@@ -289,7 +266,6 @@ public partial class SharedSurgerySystem : EntitySystem, ISurgeryConditionRaiser
         RaiseLocalEvent(ref ev);
     }
 
-    /// <summary>Итоговый шанс осложнения: база плюс модификаторы, чьи условия выполнены.</summary>
     public float GetComplicationChance(SurgeryComplicationPrototype complication, SurgeryContext context)
     {
         var chance = complication.Chance;
@@ -308,13 +284,11 @@ public partial class SharedSurgerySystem : EntitySystem, ISurgeryConditionRaiser
         return Math.Clamp(ev.Chance, 0f, 1f);
     }
 
-    /// <summary>Текущее загрязнение сущности (0, если компонента нет).</summary>
     public float GetDirt(EntityUid uid, SurgeryDirtinessComponent? dirt = null)
     {
         return Resolve(uid, ref dirt, false) ? dirt.Amount : 0f;
     }
 
-    /// <summary>Изменить загрязнение сущности.</summary>
     public void AddDirt(EntityUid uid, float amount)
     {
         if (MathHelper.CloseTo(amount, 0f))

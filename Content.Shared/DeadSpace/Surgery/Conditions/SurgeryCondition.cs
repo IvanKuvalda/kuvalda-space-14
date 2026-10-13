@@ -1,9 +1,5 @@
 namespace Content.Shared.DeadSpace.Surgery.Conditions;
 
-/// <summary>
-/// Условие хирургии: «нет перчаток», «рядом мусор», «пациент не на столе», «это диона».
-/// Одно и то же условие работает и в развилках шага, и в модификаторах осложнений.
-/// </summary>
 [ImplicitDataDefinitionForInheritors]
 public abstract partial class SurgeryCondition
 {
@@ -29,7 +25,6 @@ public abstract partial class SurgeryConditionBase<T> : SurgeryCondition where T
 [ByRefEvent]
 public record struct SurgeryConditionEvent<T>(T Condition, SurgeryContext Context) where T : SurgeryConditionBase<T>
 {
-    /// <summary>По умолчанию false: без обработчика условие не выполняется.</summary>
     public bool Result;
 
     public readonly T Condition = Condition;
@@ -41,7 +36,6 @@ public interface ISurgeryConditionRaiser
     bool RaiseConditionEvent<T>(T condition, SurgeryContext context) where T : SurgeryConditionBase<T>;
 }
 
-/// <summary>Базовая система одного условия.</summary>
 public abstract partial class SurgeryConditionSystem<TCon> : EntitySystem where TCon : SurgeryConditionBase<TCon>
 {
     public override void Initialize()

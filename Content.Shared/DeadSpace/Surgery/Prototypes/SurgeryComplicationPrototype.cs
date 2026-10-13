@@ -4,7 +4,6 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Shared.DeadSpace.Surgery.Prototypes;
 
-/// <summary>Осложнение: шанс плюс модификаторы, которые включаются условиями.</summary>
 [Prototype("surgeryComplication")]
 public sealed partial class SurgeryComplicationPrototype : IPrototype
 {
@@ -23,16 +22,13 @@ public sealed partial class SurgeryComplicationPrototype : IPrototype
     [DataField]
     public SurgeryEffect[] Effects = [];
 
-    /// <summary>Сообщение хирургу.</summary>
     [DataField]
     public LocId? Message;
 
-    /// <summary>Сообщение пациенту.</summary>
     [DataField]
     public LocId? PatientMessage;
 }
 
-/// <summary>Итог считается как (база + add) * multiply по каждому подошедшему модификатору.</summary>
 [DataDefinition]
 public sealed partial class SurgeryChanceModifier
 {
