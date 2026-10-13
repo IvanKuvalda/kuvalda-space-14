@@ -5,7 +5,7 @@
   components:
   - type: Sprite
     state: icon
-  # DS14-start: покраска перчаток краскопультом
+  # DS14-start
   - type: Appearance
   - type: Paintable
     group: Gloves

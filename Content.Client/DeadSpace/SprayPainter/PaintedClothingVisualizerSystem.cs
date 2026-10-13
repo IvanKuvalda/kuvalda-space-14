@@ -1,4 +1,3 @@
-using System.Linq;
 using Content.Shared.Clothing.Components;
 using Content.Shared.Clothing.EntitySystems;
 using Content.Shared.Item;
@@ -31,18 +30,9 @@ public sealed class PaintedClothingVisualizerSystem : VisualizerSystem<ClothingC
 
         var dummy = Spawn(prototypeId);
 
-        if (TryComp<SpriteComponent>(dummy, out var dummySprite))
-        {
-            var dummyLayers = dummySprite.AllLayers.ToList();
-            var layerCount = args.Sprite.AllLayers.Count();
+        SpriteSystem.CopySprite(dummy, uid);
 
-            for (var i = 0; i < layerCount && i < dummyLayers.Count; i++)
-            {
-                var layer = dummyLayers[i];
-                SpriteSystem.LayerSetRsi((uid, args.Sprite), i, layer.Rsi ?? dummySprite.BaseRSI, layer.RsiState);
-                SpriteSystem.LayerSetColor((uid, args.Sprite), i, layer.Color);
-            }
-        }
+        QueueDel(dummy);
 
         if (prototype.TryGetComponent<ItemComponent>(out var prototypeItem, _factory) &&
             TryComp<ItemComponent>(uid, out var item))
@@ -52,7 +42,5 @@ public sealed class PaintedClothingVisualizerSystem : VisualizerSystem<ClothingC
 
         if (prototype.TryGetComponent<ClothingComponent>(out var prototypeClothing, _factory))
             _clothing.CopyVisuals(uid, prototypeClothing, component);
-
-        QueueDel(dummy);
     }
 }
