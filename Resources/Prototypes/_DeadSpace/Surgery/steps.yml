@@ -1,0 +1,197 @@
+# Шаги операций: варианты выполнения, которые выбираются по инструменту и условиям.
+
+- type: surgeryStep
+  id: SurgeryStepIncision
+  variants:
+    # Плоть + скальпель: обычный аккуратный разрез.
+    - tool:
+        tags:
+          - SurgeryToolScalpel
+      conditions:
+        - !type:SurgeryConditionAnatomy
+          inverted: true
+          bodies: [Diona, Skeleton]
+      duration: 3
+      startMessage: surgery-step-incision-start
+      successMessage: surgery-step-incision-success
+      sound:
+        path: /Audio/Weapons/bladeslice.ogg
+      effects:
+        - !type:SurgeryEntityEffect
+          target: Patient
+          effects:
+            - !type:HealthChange
+              damage:
+                types:
+                  Slash: 2
+    # Плоть + любой другой режущий: дольше и грубее.
+    - qualities:
+        - Slicing
+      conditions:
+        - !type:SurgeryConditionAnatomy
+          inverted: true
+          bodies: [Diona, Skeleton]
+      duration: 6
+      startMessage: surgery-step-incision-start
+      successMessage: surgery-step-incision-crude
+      sound:
+        path: /Audio/Weapons/bladeslice.ogg
+      effects:
+        - !type:SurgeryEntityEffect
+          target: Patient
+          effects:
+            - !type:HealthChange
+              damage:
+                types:
+                  Slash: 5
+      complications:
+        - SurgeryComplicationJerk
+    # Диона: смола не режется скальпелем, зато поддаётся топору или лому.
+    - qualities:
+        - Prying
+      conditions:
+        - !type:SurgeryConditionAnatomy
+          bodies: [Diona]
+      duration: 7
+      startMessage: surgery-step-resin-start
+      successMessage: surgery-step-resin-chop
+      sound:
+        path: /Audio/Weapons/bladeslice.ogg
+      effects:
+        - !type:SurgeryEntityEffect
+          target: Patient
+          effects:
+            - !type:HealthChange
+              damage:
+                types:
+                  Slash: 6
+      complications:
+        - SurgeryComplicationJerk
+    # Диона: хирургическая пила — чище топора, но дольше.
+    - tool:
+        tags:
+          - SurgeryToolSaw
+      conditions:
+        - !type:SurgeryConditionAnatomy
+          bodies: [Diona]
+      duration: 9
+      startMessage: surgery-step-resin-start
+      successMessage: surgery-step-resin-success
+      effects:
+        - !type:SurgeryEntityEffect
+          target: Patient
+          effects:
+            - !type:HealthChange
+              damage:
+                types:
+                  Slash: 3
+    # Скелет: плоти нет — нужна пила или дрель.
+    - tool:
+        tags:
+          - SurgeryToolSaw
+          - SurgeryToolDrill
+      conditions:
+        - !type:SurgeryConditionAnatomy
+          bodies: [Skeleton]
+      duration: 8
+      startMessage: surgery-step-bone-start
+      successMessage: surgery-step-bone-success
+      effects:
+        - !type:SurgeryEntityEffect
+          target: Patient
+          effects:
+            - !type:HealthChange
+              damage:
+                types:
+                  Blunt: 5
+      complications:
+        - SurgeryComplicationJerk
+
+# Растянуть разрез, чтобы добраться до внутренностей.
+- type: surgeryStep
+  id: SurgeryStepRetract
+  variants:
+    - tool:
+        tags:
+          - SurgeryToolRetractor
+      duration: 2.5
+      startMessage: surgery-step-retract-start
+      successMessage: surgery-step-retract-success
+    # Грубая сила: любым хирургическим инструментом, дольше и с риском.
+    - tool:
+        tags:
+          - SurgeryTool
+      duration: 6
+      startMessage: surgery-step-retract-start
+      successMessage: surgery-step-retract-crude
+      effects:
+        - !type:SurgeryEntityEffect
+          target: Patient
+          effects:
+            - !type:HealthChange
+              damage:
+                types:
+                  Slash: 4
+      complications:
+        - SurgeryComplicationJerk
+
+# Зажать сосуды.
+- type: surgeryStep
+  id: SurgeryStepClamp
+  variants:
+    - tool:
+        tags:
+          - SurgeryToolHemostat
+      duration: 2
+      startMessage: surgery-step-clamp-start
+      successMessage: surgery-step-clamp-success
+      effects:
+        - !type:SurgeryEntityEffect
+          target: Patient
+          effects:
+            - !type:ModifyBleed
+              amount: -4
+
+# Прижечь и закрыть разрез.
+- type: surgeryStep
+  id: SurgeryStepCauterize
+  variants:
+    - tool:
+        tags:
+          - SurgeryToolCautery
+      duration: 3
+      startMessage: surgery-step-cauterize-start
+      successMessage: surgery-step-cauterize-success
+      effects:
+        - !type:SurgeryEntityEffect
+          target: Patient
+          effects:
+            - !type:ModifyBleed
+              amount: -6
+            - !type:HealthChange
+              damage:
+                types:
+                  Heat: 2
+
+# Диона заращивает разрез смолой: шаг делается голыми руками.
+- type: surgeryStep
+  id: SurgeryStepResinSeal
+  variants:
+    - conditions:
+        - !type:SurgeryConditionAnatomy
+          bodies: [Diona]
+      duration: 5
+      startMessage: surgery-step-resin-seal-start
+      successMessage: surgery-step-resin-seal-success
+      effects:
+        - !type:SurgeryEntityEffect
+          target: Patient
+          effects:
+            - !type:HealthChange
+              damage:
+                types:
+                  Slash: -6
+        # Смола липнет к рукам: без перчаток хирург пачкается.
+        - !type:SurgeryDirtEffect
+          target: Surgeon
+          amount: 20

@@ -6,6 +6,10 @@
   id: BaseSoap
   name: soap
   components:
+  # Surgery-start: мыло смывает хирургическое загрязнение (руки, инструмент).
+  - type: SurgeryDirtCleaner
+    amount: 40
+  # Surgery-end
   - type: Tag
     tags:
     - Soap
