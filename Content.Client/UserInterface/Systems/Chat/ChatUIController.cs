@@ -33,6 +33,7 @@ using Robust.Client.State;
 using Robust.Client.UserInterface;
 using Robust.Client.UserInterface.Controllers;
 using Robust.Client.UserInterface.Controls;
+using Robust.Shared;
 using Robust.Shared.Configuration;
 using Robust.Shared.GameObjects.Components.Localization;
 using Robust.Shared.Input.Binding;
@@ -144,6 +145,7 @@ public sealed partial class ChatUIController : UIController
     private ChatWindow? _mainChatPopOut;
     private ChatBox? _pendingMainChatPopOut;
     private bool _mainChatPopOutFailed;
+    private bool _updatingPopOutChat;
     // DS14-end
 
     /// <summary>
@@ -186,13 +188,19 @@ public sealed partial class ChatUIController : UIController
         _sawmill = Logger.GetSawmill("chat");
         _sawmill.Level = LogLevel.Info;
         // DS14-start
-        if (_config.GetCVar(CCCCVars.PopOutChatPending))
+        _config.OnValueChanged(CCCCVars.PopOutChat, OnPopOutChatChanged);
+
+        var build = _config.GetCVar(CVars.BuildVersion);
+        var failedBuild = _config.GetCVar(CCCCVars.PopOutChatFailedBuild);
+
+        if (failedBuild.Length != 0 && failedBuild == build)
         {
-            _mainChatPopOutFailed = true;
-            _config.SetCVar(CCCCVars.PopOutChatPending, false);
-            _config.SetCVar(CCCCVars.PopOutChat, false);
+            DisablePopOutChat();
             _config.SaveToFile();
-            _sawmill.Warning("The separate chat window could not be created last time, keeping the chat in the HUD.");
+        }
+        else
+        {
+            RestorePopOutChatAfterUpdate();
         }
         // DS14-end
         _admin.AdminStatusUpdated += UpdateChannelPermissions;
@@ -350,6 +358,10 @@ public sealed partial class ChatUIController : UIController
         {
             _pendingMainChatPopOut = chatBox;
         }
+        else if (_mainChatPopOut != null)
+        {
+            CloseMainChatPopOut();
+        }
         // DS14-end
     }
 
@@ -364,8 +376,13 @@ public sealed partial class ChatUIController : UIController
         if (chatBox.Disposed || !chatBox.Main || UIManager.ActiveScreen is not InGameScreen)
             return;
 
-        _config.SetCVar(CCCCVars.PopOutChatPending, true);
-        _config.SaveToFile();
+        var build = _config.GetCVar(CVars.BuildVersion);
+
+        if (build.Length != 0)
+        {
+            _config.SetCVar(CCCCVars.PopOutChatFailedBuild, build);
+            _config.SaveToFile();
+        }
 
         var poppedOut = false;
         try
@@ -387,17 +404,63 @@ public sealed partial class ChatUIController : UIController
             _mainChatPopOut = null;
         }
 
-        _config.SetCVar(CCCCVars.PopOutChatPending, false);
-
-        if (!poppedOut)
+        if (poppedOut)
         {
-            _sawmill.Warning("Keeping the chat in the HUD: the separate chat window could not be created.");
+            if (build.Length != 0)
+                _config.SetCVar(CCCCVars.PopOutChatFailedBuild, string.Empty);
+        }
+        else
+        {
             _mainChatPopOut = null;
-            _mainChatPopOutFailed = true;
-            _config.SetCVar(CCCCVars.PopOutChat, false);
+            DisablePopOutChat();
         }
 
         _config.SaveToFile();
+    }
+
+    private void OnPopOutChatChanged(bool enabled)
+    {
+        if (_updatingPopOutChat)
+            return;
+
+        _config.SetCVar(CCCCVars.PopOutChatFailedBuild, string.Empty);
+    }
+
+    private void SetPopOutChat(bool enabled)
+    {
+        _updatingPopOutChat = true;
+        _config.SetCVar(CCCCVars.PopOutChat, enabled);
+        _updatingPopOutChat = false;
+    }
+
+    private void DisablePopOutChat()
+    {
+        _mainChatPopOutFailed = true;
+
+        var build = _config.GetCVar(CVars.BuildVersion);
+        if (build.Length == 0)
+        {
+            _sawmill.Warning("Keeping the chat in the HUD for this session: the separate chat window could not be created.");
+            return;
+        }
+
+        _config.SetCVar(CCCCVars.PopOutChatFailedBuild, build);
+        SetPopOutChat(false);
+        _sawmill.Warning("Keeping the chat in the HUD: the separate chat window could not be created.");
+    }
+
+    private void RestorePopOutChatAfterUpdate()
+    {
+        var build = _config.GetCVar(CVars.BuildVersion);
+        var failedBuild = _config.GetCVar(CCCCVars.PopOutChatFailedBuild);
+
+        if (build.Length == 0 || failedBuild.Length == 0 || failedBuild == build)
+            return;
+
+        _config.SetCVar(CCCCVars.PopOutChatFailedBuild, string.Empty);
+        SetPopOutChat(true);
+        _config.SaveToFile();
+        _sawmill.Info("The client was updated, enabling the separate chat window again.");
     }
     // DS14-end
 
