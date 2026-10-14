@@ -140,7 +140,11 @@ public sealed partial class ChatUIController : UIController
 
     private readonly HashSet<ChatBox> _chats = new();
     public IReadOnlySet<ChatBox> Chats => _chats;
-    private ChatWindow? _mainChatPopOut; // DS14
+    // DS14-start
+    private ChatWindow? _mainChatPopOut;
+    private ChatBox? _pendingMainChatPopOut;
+    private bool _mainChatPopOutFailed;
+    // DS14-end
 
     /// <summary>
     ///     The max amount of characters an entity can send in one message
@@ -181,6 +185,16 @@ public sealed partial class ChatUIController : UIController
     {
         _sawmill = Logger.GetSawmill("chat");
         _sawmill.Level = LogLevel.Info;
+        // DS14-start
+        if (_config.GetCVar(CCCCVars.PopOutChatPending))
+        {
+            _mainChatPopOutFailed = true;
+            _config.SetCVar(CCCCVars.PopOutChatPending, false);
+            _config.SetCVar(CCCCVars.PopOutChat, false);
+            _config.SaveToFile();
+            _sawmill.Warning("The separate chat window could not be created last time, keeping the chat in the HUD.");
+        }
+        // DS14-end
         _admin.AdminStatusUpdated += UpdateChannelPermissions;
         _player.LocalPlayerAttached += OnAttachedChanged;
         _player.LocalPlayerDetached += OnAttachedChanged;
@@ -328,7 +342,33 @@ public sealed partial class ChatUIController : UIController
 
         chatBox.Main = setting;
         // DS14-start
-        if (_config.GetCVar(CCCCVars.PopOutChat) && setting)
+        if (!setting)
+        {
+            _pendingMainChatPopOut = null;
+        }
+        else if (!_mainChatPopOutFailed && _config.GetCVar(CCCCVars.PopOutChat))
+        {
+            _pendingMainChatPopOut = chatBox;
+        }
+        // DS14-end
+    }
+
+    // DS14-start
+    private void UpdateMainChatPopOut()
+    {
+        if (_pendingMainChatPopOut is not { } chatBox)
+            return;
+
+        _pendingMainChatPopOut = null;
+
+        if (chatBox.Disposed || !chatBox.Main || UIManager.ActiveScreen is not InGameScreen)
+            return;
+
+        _config.SetCVar(CCCCVars.PopOutChatPending, true);
+        _config.SaveToFile();
+
+        var poppedOut = false;
+        try
         {
             var popOut = _mainChatPopOut;
             if (popOut == null)
@@ -338,10 +378,28 @@ public sealed partial class ChatUIController : UIController
                 popOut.PoppedOutClosed += OnMainChatPopOutClosed;
             }
 
-            popOut.PopOutChatRef(ref chatBox);
+            poppedOut = popOut.PopOutChatRef(ref chatBox);
         }
-        // DS14-end
+        catch (Exception e)
+        {
+            _sawmill.Error($"Failed to move the main chat into a separate window, keeping it in the HUD:\n{e}");
+            CloseMainChatPopOut();
+            _mainChatPopOut = null;
+        }
+
+        _config.SetCVar(CCCCVars.PopOutChatPending, false);
+
+        if (!poppedOut)
+        {
+            _sawmill.Warning("Keeping the chat in the HUD: the separate chat window could not be created.");
+            _mainChatPopOut = null;
+            _mainChatPopOutFailed = true;
+            _config.SetCVar(CCCCVars.PopOutChat, false);
+        }
+
+        _config.SaveToFile();
     }
+    // DS14-end
 
     // DS14-start
     private void OnMainChatPopOutClosed()
@@ -639,6 +697,7 @@ public sealed partial class ChatUIController : UIController
 
     public override void FrameUpdate(FrameEventArgs delta)
     {
+        UpdateMainChatPopOut(); // DS14
         UpdateQueuedSpeechBubbles(delta);
     }
 
