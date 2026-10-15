@@ -7,7 +7,4 @@ public sealed partial class SurgeryDirtCleanerComponent : Component
 {
     [DataField]
     public float Amount = 25f;
-
-    [DataField]
-    public LocId? Popup;
 }
