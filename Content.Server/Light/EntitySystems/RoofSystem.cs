@@ -26,8 +26,6 @@ public sealed class RoofSystem : SharedRoofSystem
         if (_gridQuery.TryComp(xform.GridUid, out var grid))
         {
             var index = _maps.LocalToTile(xform.GridUid.Value, grid, xform.Coordinates);
-            // The grid may not have roof data yet (e.g. procedurally generated or custom grids
-            // only get ImplicitRoofComponent). Without this the marker would silently do nothing.
             var roof = EnsureComp<RoofComponent>(xform.GridUid.Value);
             SetRoof((xform.GridUid.Value, grid, roof), index, ent.Comp.Value);
         }
