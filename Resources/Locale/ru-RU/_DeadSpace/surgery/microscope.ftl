@@ -4,7 +4,7 @@ microscope-ui-eject = Извлечь орган
 microscope-ui-flip = Перевернуть орган
 microscope-ui-empty = Поместите извлечённый орган в слот микроскопа
 microscope-ui-organ-damage = Повреждение: { $damage } / { $max }
-microscope-ui-organ-dead = ОРГАН МЁРТВ
+microscope-ui-organ-dead = ОРГАН МЁРТВ 
 
 microscope-wound-window-title = Детали раны
 microscope-wound-damage-type = Тип урона: { $type }
