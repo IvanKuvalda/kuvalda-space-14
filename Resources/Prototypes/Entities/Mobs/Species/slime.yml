@@ -4,6 +4,8 @@
   id: BaseMobSlimePerson
   abstract: true
   components:
+  # DS14
+  - type: JellyWobble
   - type: Icon
     sprite: Mobs/Species/Slime/parts.rsi
     state: full

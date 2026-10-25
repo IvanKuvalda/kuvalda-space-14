@@ -5,6 +5,14 @@
   abstract: true
   description: It looks so much like jelly. I wonder what it tastes like?
   components:
+  # DS14-Start
+  - type: JellyWobble
+    motionKick: 0.55
+    maxLag: 8
+    damageKick: 110
+    idleBreath: 2.5
+    idleCycle: 2.0
+  # DS14-End
   - type: Sprite
     drawdepth: Mobs
     sprite: Mobs/Aliens/slimes.rsi

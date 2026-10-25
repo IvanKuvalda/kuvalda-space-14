@@ -125,3 +125,11 @@
   id: ScreechShockWave
   kind: source
   path: "/Textures/Shaders/screech_shock_wave.swsl"
+
+# DS14-Start
+# Soft-body row lag for gelatinous creatures
+- type: shader
+  id: SoftBodyWobble
+  kind: source
+  path: "/Textures/_DeadSpace/Shaders/softbody.swsl"
+# DS14-End

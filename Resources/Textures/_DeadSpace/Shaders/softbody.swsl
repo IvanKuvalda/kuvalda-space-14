@@ -1,0 +1,12 @@
+light_mode unshaded;
+
+
+uniform highp vec2 lag;
+
+const highp float curve = 1.35; // наскольок больше одного, тем туже тело снизу
+
+void fragment() {
+    highp float w = pow(UV.y, curve);
+    highp vec2 tex = floor(-lag * w + 0.5);
+    COLOR = zTexture(UV + tex * TEXTURE_PIXEL_SIZE);
+}
