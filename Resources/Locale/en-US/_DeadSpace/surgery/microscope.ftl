@@ -1,6 +1,7 @@
 microscope-organ-slot-name = Organ slot
 
 microscope-ui-eject = Extract organ
+microscope-ui-flip = Flip organ
 microscope-ui-empty = Place an extracted organ into the microscope slot
 microscope-ui-organ-damage = Damage: { $damage } / { $max }
 microscope-ui-organ-dead = ORGAN IS DEAD

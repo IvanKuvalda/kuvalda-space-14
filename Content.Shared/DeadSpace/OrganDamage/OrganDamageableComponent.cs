@@ -66,4 +66,9 @@ public sealed partial class OrganWound
         if (time > Time)
             Time = time;
     }
+
+    public void Split(FixedPoint2 piece)
+    {
+        Amount -= piece;
+    }
 }

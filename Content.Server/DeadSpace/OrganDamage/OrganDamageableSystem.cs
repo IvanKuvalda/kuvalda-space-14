@@ -148,23 +148,64 @@ public sealed class OrganDamageableSystem : EntitySystem
         return oldDamage < maxDamage && newDamage >= maxDamage;
     }
 
+    private readonly Random _random = new();
+
+    private const float SplitThreshold = 12f;
+    private const int MaxChunksPerGroup = 6;
+
     private void RecordWound(Entity<OrganDamageableComponent> organ, string typeId, FixedPoint2 amount, EntityUid? origin)
     {
         var comp = organ.Comp;
         var source = ResolveSource(origin);
         var now = _timing.CurTime;
 
+        var group = new List<OrganWound>();
         foreach (var wound in comp.Wounds)
         {
             if (wound.DamageType == typeId && wound.Source == source)
+                group.Add(wound);
+        }
+
+        if (group.Count == 0)
+        {
+            comp.Wounds.Add(new OrganWound(Guid.NewGuid(), now, typeId, amount, source));
+            TrimWounds(comp);
+            return;
+        }
+
+        var target = group[_random.Next(group.Count)];
+        target.Merge(amount, now);
+
+        foreach (var chunk in group)
+        {
+            while (chunk.Amount.Float() > SplitThreshold && CountGroup(comp, typeId, source) < MaxChunksPerGroup)
             {
-                wound.Merge(amount, now);
-                return;
+                var piece = chunk.Amount.Float() * (0.35f + (float) _random.NextDouble() * 0.25f);
+                if (piece <= 1f)
+                    break;
+
+                chunk.Split(FixedPoint2.New(piece));
+                comp.Wounds.Add(new OrganWound(Guid.NewGuid(), chunk.Time, typeId, FixedPoint2.New(piece), source));
             }
         }
 
-        comp.Wounds.Add(new OrganWound(Guid.NewGuid(), now, typeId, amount, source));
+        TrimWounds(comp);
+    }
 
+    private static int CountGroup(OrganDamageableComponent comp, string typeId, string? source)
+    {
+        var count = 0;
+        foreach (var wound in comp.Wounds)
+        {
+            if (wound.DamageType == typeId && wound.Source == source)
+                count++;
+        }
+
+        return count;
+    }
+
+    private static void TrimWounds(OrganDamageableComponent comp)
+    {
         while (comp.Wounds.Count > comp.MaxWounds)
             comp.Wounds.RemoveAt(0);
     }

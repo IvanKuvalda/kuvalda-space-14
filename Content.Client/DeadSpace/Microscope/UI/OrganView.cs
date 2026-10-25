@@ -36,7 +36,7 @@ public sealed class OrganView : LayoutContainer
         ["Radiation"] = Color.FromHex("#9fe066"),
     };
 
-    private static readonly Vector2[] FallbackAnchors = { new(0.5f, 0.5f) };
+    private static readonly Vector2[] FallbackAnchors = { new(0.46f, 0.5f), new(0.54f, 0.5f) };
 
     private static readonly Dictionary<string, Vector2[]> StateAnchors = new()
     {
@@ -81,8 +81,16 @@ public sealed class OrganView : LayoutContainer
     private Texture? _organTexture;
     private Vector2 _cameraOffset;
     private Vector2[] _currentAnchors = FallbackAnchors;
+    private bool _flipped;
+
+    public bool IsFlipped => _flipped;
 
     public event Action<OrganWound>? OnWoundClicked;
+
+    public void SetFlipped(bool flipped)
+    {
+        _flipped = flipped;
+    }
 
     public OrganView()
     {
@@ -194,11 +202,37 @@ public sealed class OrganView : LayoutContainer
         var rng = new Random(wound.Id.GetHashCode());
         var anchor = _currentAnchors[rng.Next(_currentAnchors.Length)];
         var jitter = new Vector2(
-            (float) (rng.NextDouble() * 2.0 - 1.0) * 5f,
-            (float) (rng.NextDouble() * 2.0 - 1.0) * 5f);
+            (float) (rng.NextDouble() * 2.0 - 1.0) * 4f,
+            (float) (rng.NextDouble() * 2.0 - 1.0) * 4f);
+
+        if (_flipped)
+            anchor = new Vector2(1f - anchor.X, anchor.Y);
 
         var organSide = OrganSide;
         return OrganCenter(_cameraOffset) + (anchor - new Vector2(0.5f)) * organSide + jitter;
+    }
+
+    private int AnchorIndexOf(OrganWound wound)
+    {
+        var rng = new Random(wound.Id.GetHashCode());
+        return rng.Next(_currentAnchors.Length);
+    }
+
+    private bool IsWoundVisible(OrganWound wound)
+    {
+        return (AnchorIndexOf(wound) & 1) == (_flipped ? 1 : 0);
+    }
+
+    private static void DrawOrganTexture(DrawingHandleScreen handle, Texture tex, UIBox2 rect, Color tint, bool mirrored)
+    {
+        if (!mirrored)
+        {
+            handle.DrawTextureRect(tex, rect, tint);
+            return;
+        }
+
+        var subRegion = new UIBox2(tex.Width, 0, 0, tex.Height);
+        handle.DrawTextureRectRegion(tex, rect, subRegion, tint);
     }
 
     protected override void Draw(DrawingHandleScreen handle)
@@ -222,10 +256,10 @@ public sealed class OrganView : LayoutContainer
 
         var backOffset = _cameraOffset * BackDepthFactor + new Vector2(BackShift, BackShift + wobble);
         var backRect = UIBox2.FromDimensions(OrganCenter(backOffset) - new Vector2(organSide * BackGrow / 2f), new Vector2(organSide * BackGrow));
-        handle.DrawTextureRect(_organTexture, backRect, organTint * new Color(0.42f, 0.34f, 0.36f, 0.55f));
+        DrawOrganTexture(handle, _organTexture, backRect, organTint * new Color(0.42f, 0.34f, 0.36f, 0.55f), _flipped);
 
         var frontRect = UIBox2.FromDimensions(OrganCenter(_cameraOffset) - new Vector2(organSide / 2f), new Vector2(organSide));
-        handle.DrawTextureRect(_organTexture, frontRect, organTint);
+        DrawOrganTexture(handle, _organTexture, frontRect, organTint, _flipped);
 
         handle.DrawCircle(OrganCenter(_cameraOffset), organSide * 0.52f, new Color(0f, 0f, 0f, 0.25f), false);
     }
@@ -252,10 +286,13 @@ public sealed class OrganView : LayoutContainer
         {
             OrganWound? best = null;
             var bestDist = float.MaxValue;
-            var hitRadius = _parent.OrganSide * 0.05f;
+            var hitRadius = _parent.OrganSide * 0.028f;
 
             foreach (var wound in _wounds)
             {
+                if (!_parent.IsWoundVisible(wound))
+                    continue;
+
                 var dist = (_parent.GetWoundScreenPos(wound) - pos).Length();
                 if (dist > hitRadius || dist >= bestDist)
                     continue;
@@ -279,6 +316,9 @@ public sealed class OrganView : LayoutContainer
 
             foreach (var wound in _wounds)
             {
+                if (!_parent.IsWoundVisible(wound))
+                    continue;
+
                 var pos = _parent.GetWoundScreenPos(wound);
                 var tint = OrganView.GetWoundColor(wound);
                 var organSide = _parent.OrganSide;
@@ -287,13 +327,13 @@ public sealed class OrganView : LayoutContainer
                 {
                     var rng = new Random(wound.Id.GetHashCode() ^ 0x5f5f);
                     var tex = _parent._decalTextures[rng.Next(_parent._decalTextures.Count)];
-                    var size = organSide * (0.08f + (float) rng.NextDouble() * 0.05f);
+                    var size = organSide * (0.035f + (float) rng.NextDouble() * 0.02f);
                     var rect = UIBox2.FromDimensions(pos - new Vector2(size / 2f), new Vector2(size, size));
                     handle.DrawTextureRect(tex, rect, tint);
                 }
                 else
                 {
-                    handle.DrawCircle(pos, organSide * 0.035f, tint);
+                    handle.DrawCircle(pos, organSide * 0.015f, tint);
                 }
             }
         }

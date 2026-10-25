@@ -28,6 +28,7 @@ public sealed class MicroscopeBoundUserInterface : BoundUserInterface
         };
 
         _window.EjectOrganPressed += OnEjectOrganPressed;
+        _window.FlipPressed += OnFlipPressed;
         _window.WoundClicked += OpenWoundWindow;
         _window.OnClose += CloseWoundWindow;
         _window.OpenCentered();
@@ -36,6 +37,11 @@ public sealed class MicroscopeBoundUserInterface : BoundUserInterface
     private void OnEjectOrganPressed()
     {
         SendMessage(new MicroscopeActionMessage(MicroscopeUiAction.EjectOrgan));
+    }
+
+    private void OnFlipPressed()
+    {
+        _window?.ToggleFlip();
     }
 
     private void OpenWoundWindow(OrganWound wound)
@@ -74,6 +80,7 @@ public sealed class MicroscopeBoundUserInterface : BoundUserInterface
         if (_window != null)
         {
             _window.EjectOrganPressed -= OnEjectOrganPressed;
+            _window.FlipPressed -= OnFlipPressed;
             _window.WoundClicked -= OpenWoundWindow;
             _window.OnClose -= CloseWoundWindow;
         }

@@ -8,6 +8,7 @@
         <Label Name="OrganNameLabel" Align="Center" />
         <ProgressBar Name="DamageBar" MinValue="0" MaxValue="1" MinHeight="16" />
         <Label Name="StatusLabel" Align="Center" />
+        <Button Name="FlipButton" Text="{Loc microscope-ui-flip}" />
         <Button Name="EjectButton" Text="{Loc microscope-ui-eject}" />
     </BoxContainer>
 </DefaultWindow>

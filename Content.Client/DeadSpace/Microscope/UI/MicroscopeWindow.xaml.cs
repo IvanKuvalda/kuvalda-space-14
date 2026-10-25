@@ -15,11 +15,19 @@ public sealed partial class MicroscopeWindow : DefaultWindow
 {
     public event Action? EjectOrganPressed;
 
+    public event Action? FlipPressed;
+
+    public void ToggleFlip()
+    {
+        OrganView.SetFlipped(!OrganView.IsFlipped);
+    }
+
     public MicroscopeWindow()
     {
         RobustXamlLoader.Load(this);
 
         EjectButton.OnPressed += _ => EjectOrganPressed?.Invoke();
+        FlipButton.OnPressed += _ => FlipPressed?.Invoke();
         OrganView.OnWoundClicked += wound => WoundClicked?.Invoke(wound);
     }
 
