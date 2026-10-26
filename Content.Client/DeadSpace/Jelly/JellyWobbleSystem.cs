@@ -7,13 +7,11 @@ using Robust.Client.GameObjects;
 using Robust.Client.Graphics;
 using Robust.Shared.Physics.Components;
 using Robust.Shared.Prototypes;
-using Robust.Shared.Timing;
 
 namespace Content.Client.DeadSpace.Jelly;
 
 public sealed class JellyWobbleSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
     [Dependency] private readonly IPrototypeManager _proto = default!;
     [Dependency] private readonly SharedTransformSystem _transform = default!;
 
@@ -29,7 +27,6 @@ public sealed class JellyWobbleSystem : EntitySystem
     public override void Initialize()
     {
         base.Initialize();
-
         SubscribeLocalEvent<JellyWobbleComponent, ComponentShutdown>(OnShutdown);
     }
 
@@ -72,6 +69,7 @@ public sealed class JellyWobbleSystem : EntitySystem
         // резкий разворот, бег или тд колышет тело
         var deltaV = velocity - wobble.LastVelocity;
         wobble.LastVelocity = velocity;
+
         if (deltaV != Vector2.Zero)
         {
             wobble.Rate -= deltaV * wobble.MotionKick * PixelsPerMeter;
@@ -90,6 +88,7 @@ public sealed class JellyWobbleSystem : EntitySystem
         var target = -velocity * wobble.VelocityLag * PixelsPerMeter;
         var omega = MathF.Tau * MathF.Max(wobble.WobbleFrequency, 0.01f);
         var zeta = Math.Clamp(wobble.WobbleDecay, 0.01f, 1f);
+
         var decay = MathF.Exp(-zeta * omega * dt);
         var damped = omega * MathF.Sqrt(1f - zeta * zeta);
         var sin = MathF.Sin(damped * dt);
@@ -97,6 +96,7 @@ public sealed class JellyWobbleSystem : EntitySystem
 
         var rel0 = wobble.Lag - target;
         var rate0 = wobble.Rate;
+
         wobble.Lag = target + decay * (rel0 * cos + (rate0 + zeta * omega * rel0) / damped * sin);
         wobble.Rate = decay * (rate0 * cos - (omega * omega * rel0 + zeta * omega * rate0) / damped * sin);
 
@@ -111,11 +111,9 @@ public sealed class JellyWobbleSystem : EntitySystem
         if (alive && wobble.IdleBreath > 0f && wobble.IdleCycle > 0f)
             wobble.BreathPhase = (wobble.BreathPhase + frameTime / wobble.IdleCycle) % 1f;
 
-        var breath = alive
-            ? MathF.Sin(wobble.BreathPhase * MathF.Tau) * wobble.IdleBreath
-            : 0f;
-
+        var breath = alive ? MathF.Sin(wobble.BreathPhase * MathF.Tau) * wobble.IdleBreath : 0f;
         var shift = wobble.Lag + new Vector2(0f, breath);
+
         var excited = shift.Length() > AttachLag || wobble.Rate.Length() > AttachRate;
 
         if (!excited)
