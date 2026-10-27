@@ -5,11 +5,11 @@ uniform highp vec4 normalUV;
 // шаг сэмплирования градиента lightmap в UV-пространстве (не экранные пиксели:
 // SCREEN_PIXEL_SIZE в мировом проходе не совпадает с разрешением lightmap,
 // из-за чего смещение выходит суб-тексельным и градиент обнуляется)
-const highp float GRADIENT_STEP = 0.006;
+const highp float GRADIENT_STEP = 0.02;
 // насколько сильно градиент карты освещения показывается как направление света
 const highp float LIGHT_GRADIENT_STRENGTH = 60.0;
 // насколько нормаль может осветлить ИЛИ затемнить принимаемый свет
-const highp float NORMAL_SHADING_STRENGTH = 1.0;
+const highp float NORMAL_SHADING_STRENGTH = 0.9;
 // ОТЛАДКА: 1.0 = раскрасить спрайт: R/G каналы = нормаль (фиолетовый = плоско),
 // зелёный поверх = сила градиента света. 0.0 = нормальный режим.
 const highp float DEBUG_COLORS = 0.0;
@@ -40,7 +40,9 @@ void fragment() {
             highp vec2 lightDir = grad / gMag;
             highp float lightAmount = clamp(gMag * LIGHT_GRADIENT_STRENGTH, 0.0, 1.0);
 
-            lightSample *= clamp(1.0 + lightAmount * dot(n, lightDir) * NORMAL_SHADING_STRENGTH, 0.3, 1.7);
+            // на ярком свету гасим эффект: там градиент lightmap шумит и даёт полосы
+            highp float atten = 1.0 - clamp(dot(lightSample, vec3(0.2126, 0.7152, 0.0722)) * 0.9, 0.0, 1.0);
+            lightSample *= clamp(1.0 + lightAmount * atten * dot(n, lightDir) * NORMAL_SHADING_STRENGTH, 0.45, 1.55);
         }
     }
 
