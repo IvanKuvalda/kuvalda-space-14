@@ -3,8 +3,7 @@
 - type: entity
   parent: Paper
   id: PaperReceiptFlipFront
-  name: чек НаноДела
-  description: Узкий чек НаноДела. Текст напечатан только на одной из его сторон.
+  name: билет
   components:
   - type: FlippablePaper
     flipTarget: PaperReceiptFlipBack
@@ -31,8 +30,7 @@
 - type: entity
   parent: BasePaper
   id: PaperReceiptFlipBack
-  name: чек НаноДела
-  description: Узкий чек НаноДела. С этой стороны ничего не написано.
+  name: билет
   components:
   - type: FlippablePaper
     flipTarget: PaperReceiptFlipFront
