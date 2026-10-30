@@ -164,7 +164,7 @@ public sealed class SpeedModifierContactsSystem : EntitySystem
 
                 walkSpeed += slowContactsComponent.WalkSpeedModifier;
                 sprintSpeed += slowContactsComponent.SprintSpeedModifier;
-                contactEntries++;
+                contactEntries++; // DS14
                 speedModified = true;
             }
 
@@ -192,7 +192,7 @@ public sealed class SpeedModifierContactsSystem : EntitySystem
             }
         }
 
-        if (entries > 0 && (!MathHelper.CloseTo(walkSpeed, contactEntries) || !MathHelper.CloseTo(sprintSpeed, contactEntries) || slipperyEntries > 0))
+        if (entries > 0 && (!MathHelper.CloseTo(walkSpeed, contactEntries) || !MathHelper.CloseTo(sprintSpeed, contactEntries) || slipperyEntries > 0)) // DS14
         {
             // DS14-start
             var evMax = new GetSpeedModifierContactCapEvent();
