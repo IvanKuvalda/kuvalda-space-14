@@ -1,52 +1,31 @@
 {
   "version": 1,
   "license": "CC-BY-SA-3.0",
-  "copyright": "Base sprite taken from tgstation silo (MrDoomBringer), recolored for DS14 bluespace miner",
+  "copyright": "Created by ripentropy (dicrord) for Space Station 14 server Мёртвый Космос",
   "size": {
     "x": 32,
-    "y": 32
+    "y": 64
   },
   "states": [
     {
-      "name": "icon"
+      "name": "miner"
     },
     {
-      "name": "icon_running",
+      "name": "miner-on",
       "delays": [
-        [
-          0.1,
-          0.1,
-          0.1,
-          0.1,
-          0.1,
-          0.1
-        ]
+        [ 0.1, 0.1 ]
       ]
     },
     {
-      "name": "blue",
+      "name": "miner-blue",
       "delays": [
-        [
-          0.1,
-          0.1,
-          0.1,
-          0.1,
-          0.1,
-          0.1
-        ]
+        [ 0.1, 0.1, 0.1, 0.1, 0.1, 0.1 ]
       ]
     },
     {
-      "name": "red",
+      "name": "miner-red",
       "delays": [
-        [
-          0.2,
-          0.2,
-          0.2,
-          0.2,
-          0.2,
-          0.2
-        ]
+        [ 0.1, 0.1, 0.1, 0.1, 0.1, 0.1 ]
       ]
     }
   ]

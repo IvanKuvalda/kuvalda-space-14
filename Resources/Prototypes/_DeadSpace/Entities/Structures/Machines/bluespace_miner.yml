@@ -8,18 +8,18 @@
     sprite: _DeadSpace/Structures/Machines/bluespace_miner_status.rsi
     snapCardinals: true
     layers:
-    - state: icon
+    - state: miner
       map: [ "base" ]
-    - state: blue
+    - state: miner-blue
       shader: unshaded
       map: [ "enum.BluespaceMinerVisuals.Status" ]
   - type: GenericVisualizer
     visuals:
       enum.BluespaceMinerVisuals.Status:
         enum.BluespaceMinerVisuals.Status:
-          0: { state: blue } # Ok
-          1: { state: red } # BadConditions
-          2: { state: red } # Unpowered
+          0: { state: miner-blue } # Ok
+          1: { state: miner-red } # BadConditions
+          2: { state: miner-red } # Unpowered
   - type: Appearance
   - type: AtmosDevice
   - type: BluespaceMiner
