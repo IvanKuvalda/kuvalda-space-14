@@ -278,22 +278,20 @@ public sealed class DemonShadowSystem : SharedDemonShadowSystem
     }
 
     private void OnDemonShadowDeath(EntityUid uid, DemonShadowComponent component, MobStateChangedEvent args)
+{
+    if (args.NewMobState != MobState.Dead)
+        return;
+
+    if (!TryComp<HandsComponent>(uid, out var hands))
+        return;
+
+    // Рука не должна выпадать после смерти демона — она исчезает вместе с ним.
+    foreach (var held in _hands.EnumerateHeld((uid, hands)).ToList())
     {
-        if (args.NewMobState != MobState.Dead)
-            return;
-
-        if (!TryComp<HandsComponent>(uid, out var hands))
-            return;
-
-        // Рука не должна выпадать после смерти демона — она исчезает вместе с ним.
-        foreach (var held in _hands.EnumerateHeld((uid, hands)).ToList())
-        {
-            if (!HasComp<DemonShadowHandComponent>(held))
-            if (HasComp<DemonShadowHandComponent>(held))
-                QueueDel(held);
-        }
+        if (HasComp<DemonShadowHandComponent>(held))
+            QueueDel(held);
     }
-
+}
     private void OnFlareProjectileHit(EntityUid uid, DemonShadowFlareDamageComponent component,
         ref ProjectileHitEvent args)
     {
