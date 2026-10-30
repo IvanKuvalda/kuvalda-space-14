@@ -126,12 +126,9 @@ public sealed class SpeedModifierContactsSystem : EntitySystem
 
         bool remove = true;
         var entries = 0;
+        // DS14-Start
         var contactEntries = 0;
         var slipperyEntries = 0;
-        // DS14-start
-        // SlowedOverSlippery slowdown is tracked separately from contact slowdown
-        // so clothing slowdown resistance (e.g. SpeedModifierContactCapClothing)
-        // does not weaken it — it is only meant to resist puddle slowdown.
         var slipperyWalk = 0.0f;
         var slipperySprint = 0.0f;
         // DS14-end
