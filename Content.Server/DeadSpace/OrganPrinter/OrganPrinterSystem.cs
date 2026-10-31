@@ -64,11 +64,13 @@ public sealed class OrganPrinterSystem : EntitySystem
             return;
 
         var quality = Math.Clamp(args.Quality, 0, 100);
-        var effectiveCost = (int) Math.Ceiling(entry.Cost * (1f + (100 - quality) * 0.002f));
+        var waste = Math.Max(0, args.Waste);
+        var effectiveCost = entry.Cost + (int) Math.Ceiling(waste * ent.Comp.WasteCost);
 
         if (_material.GetMaterialAmount(ent.Owner, ent.Comp.Material) < effectiveCost)
         {
-            _popup.PopupEntity(Loc.GetString("organ-printer-no-biomass"), ent.Owner, args.Actor);
+            _popup.PopupEntity(
+                Loc.GetString("organ-printer-no-biomass", ("need", effectiveCost)), ent.Owner, args.Actor);
             return;
         }
 
@@ -79,7 +81,7 @@ public sealed class OrganPrinterSystem : EntitySystem
 
         _audio.PlayPvs(ent.Comp.PrintSound, ent.Owner);
         _popup.PopupEntity(
-            Loc.GetString("organ-printer-printed", ("name", Name(printed)), ("quality", quality)),
+            Loc.GetString("organ-printer-printed", ("name", Name(printed)), ("quality", quality), ("waste", waste)),
             ent.Owner, args.Actor);
         UpdateUi(ent);
     }

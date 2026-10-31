@@ -36,18 +36,20 @@ public sealed class OrganPrinterUpdateState : BoundUserInterfaceState
 
 /// <summary>
 /// Запрос на печать органа после мини-игры.
-/// Качество (0-100) влияет на отходы биомассы: чем ниже, тем больше расход.
+/// Качество (0-100) - итог сплайсинга, отходы - лишние кубы вне силуэта органа.
 /// </summary>
 [Serializable, NetSerializable]
 public sealed class OrganPrinterPrintRequestMessage : BoundUserInterfaceMessage
 {
     public readonly EntProtoId Product;
     public readonly int Quality;
+    public readonly int Waste;
 
-    public OrganPrinterPrintRequestMessage(EntProtoId product, int quality)
+    public OrganPrinterPrintRequestMessage(EntProtoId product, int quality, int waste)
     {
         Product = product;
         Quality = quality;
+        Waste = waste;
     }
 }
 

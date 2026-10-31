@@ -44,6 +44,12 @@ public sealed partial class OrganPrinterComponent : Component
     public ProtoId<MaterialPrototype> Material = "Biomass";
 
     /// <summary>
+    /// Сколько биомассы стоит один поглощённый куб вне силуэта органа.
+    /// </summary>
+    [DataField]
+    public float WasteCost = 0.1f;
+
+    /// <summary>
     /// Звук печати органа.
     /// </summary>
     [DataField]

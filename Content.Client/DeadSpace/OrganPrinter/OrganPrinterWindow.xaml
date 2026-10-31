@@ -104,6 +104,7 @@
                        StyleClasses="LabelBig"
                        HorizontalExpand="True" />
                 <Label Name="GameCoverageLabel" StyleClasses="LabelSubText" />
+                <Label Name="GameWasteLabel" StyleClasses="LabelSubText" />
                 <Label Name="GameIntegrityLabel" StyleClasses="LabelSubText" />
             </BoxContainer>
 

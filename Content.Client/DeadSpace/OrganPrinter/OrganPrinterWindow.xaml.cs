@@ -18,7 +18,7 @@ public sealed partial class OrganPrinterWindow : DefaultWindow
 {
     [Dependency] private readonly IPrototypeManager _proto = default!;
 
-    public event Action<EntProtoId, int>? OnPrintPressed;
+    public event Action<EntProtoId, int, int>? OnPrintPressed;
     public event Action<bool>? OnGameFailed;
 
     private readonly SplicingGameControl _game = new();
@@ -46,13 +46,14 @@ public sealed partial class OrganPrinterWindow : DefaultWindow
         GameAbortButton.OnPressed += _ => CloseGame();
         GameDoneButton.OnPressed += _ => CloseGame();
 
-        _game.OnStatsChanged += (coverage, integrity) =>
+        _game.OnStatsChanged += (coverage, integrity, waste) =>
         {
             GameCoverageLabel.Text = Loc.GetString("organ-printer-game-coverage", ("percent", coverage));
+            GameWasteLabel.Text = Loc.GetString("organ-printer-game-waste", ("count", waste));
             GameIntegrityLabel.Text = Loc.GetString("organ-printer-game-integrity", ("percent", integrity));
         };
 
-        _game.OnFinished += (won, quality) =>
+        _game.OnFinished += (won, quality, waste) =>
         {
             GameFastButton.Visible = false;
             GameFineButton.Visible = false;
@@ -63,9 +64,9 @@ public sealed partial class OrganPrinterWindow : DefaultWindow
 
             if (won)
             {
-                GameResultLabel.Text = Loc.GetString("organ-printer-game-win", ("quality", quality));
+                GameResultLabel.Text = Loc.GetString("organ-printer-game-win", ("quality", quality), ("waste", waste));
                 if (_selected is { } product)
-                    OnPrintPressed?.Invoke(product, quality);
+                    OnPrintPressed?.Invoke(product, quality, waste);
             }
             else
             {
@@ -109,6 +110,7 @@ public sealed partial class OrganPrinterWindow : DefaultWindow
         GameModeHintLabel.Visible = true;
         GameModeHintLabel.Text = Loc.GetString("organ-printer-game-select-mode");
         GameCoverageLabel.Text = string.Empty;
+        GameWasteLabel.Text = string.Empty;
         GameIntegrityLabel.Text = string.Empty;
         GameTitleLabel.Text = Loc.GetString("organ-printer-game-splicing");
 

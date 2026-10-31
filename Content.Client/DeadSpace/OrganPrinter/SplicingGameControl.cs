@@ -17,8 +17,10 @@ namespace Content.Client.DeadSpace.OrganPrinter;
 
 /// <summary>
 /// Поле мини-игры «Сплайсинг ткани»: Qix-подобный захват территории.
-/// Игрок-инжектор чертит линии от закрашенной зоны; замкнутый контур затягивается «мясом».
-/// Некроз (красные искры) летает по незаполненной области, глитчи (синие пиксели) ползают по границам закрашенного.
+/// Игрок чертит линии от края поля; замкнутый контур затягивается «мясом».
+/// Клетки вне силуэта органа считаются отходами и тратят биомассу.
+/// Некроз (красные искры) убивает при попадании в линию, глитчи (синие пиксели) ползают по чужой ткани,
+/// ИИ-соперник (фиолетовый) захватывает куски органа — их приходится отбирать.
 /// </summary>
 public sealed class SplicingGameControl : Control
 {
@@ -34,6 +36,9 @@ public sealed class SplicingGameControl : Control
         Empty = 0,
         Filled = 1,
         Trail = 2,
+        Rival = 3,
+        RivalTrail = 4,
+        Wall = 5,
     }
 
     private enum Direction
@@ -63,12 +68,22 @@ public sealed class SplicingGameControl : Control
         public double NextStep;
     }
 
-    private static readonly (float TrailHit, float PlayerHit) FastDamage = (18f, 26f);
-    private static readonly (float TrailHit, float PlayerHit) FineDamage = (10f, 15f);
+    private sealed class Rival
+    {
+        public int X;
+        public int Y;
+        public Direction Dir = Direction.Right;
+        public double StepTimer;
+        public double DiveTimer = 4.0;
+        public bool Diving;
+        public List<(int X, int Y, bool Mark)> Path = new();
+        public int PathIndex;
+    }
 
     private readonly Cell[,] _cells = new Cell[FieldW, FieldH];
     private readonly List<Direction> _held = new();
-    private readonly List<(int X, int Y)> _trail = new();
+    private readonly List<(int X, int Y, Cell Under)> _trail = new();
+    private readonly List<(int X, int Y)> _rivalTrail = new();
     private readonly List<Necrosis> _necrosis = new();
     private readonly List<Glitch> _glitches = new();
     private readonly IGameTiming _timing;
@@ -78,6 +93,7 @@ public sealed class SplicingGameControl : Control
     private bool[,] _silhouette = new bool[FieldW, FieldH];
     private int _silhouetteTotal;
     private int _silhouetteFilled;
+    private (int X, int Y) _seed = (FieldW / 2, FieldH / 2);
 
     private bool _fastMode = true;
     private bool _running;
@@ -93,14 +109,17 @@ public sealed class SplicingGameControl : Control
     private float _invuln;
     private float _integrity = 100f;
     private double _coverage;
+    private int _waste;
+
+    private Rival _rival = new();
 
     private TimeSpan _lastFrame;
 
-    /// <summary>Вызывается при завершении игры: выиграл ли игрок и качество ткани 0-100.</summary>
-    public event Action<bool, int>? OnFinished;
+    /// <summary>Вызывается при завершении игры: успех, качество ткани 0-100 и отходы в кубах.</summary>
+    public event Action<bool, int, int>? OnFinished;
 
-    /// <summary>Вызывается при изменении покрытия силуэта (0-100) или целостности принтера.</summary>
-    public event Action<int, int>? OnStatsChanged;
+    /// <summary>Вызывается при изменении покрытия силуэта (0-100), целостности принтера и отходов.</summary>
+    public event Action<int, int, int>? OnStatsChanged;
 
     public SplicingGameControl()
     {
@@ -121,6 +140,7 @@ public sealed class SplicingGameControl : Control
     public bool FastMode => _fastMode;
     public int Integrity => (int) _integrity;
     public int Coverage => (int) Math.Round(_coverage * 100f);
+    public int Waste => _waste;
 
     /// <summary>
     /// Загружает силуэт органа для показа на экране выбора режима.
@@ -146,6 +166,64 @@ public sealed class SplicingGameControl : Control
                     _silhouetteTotal++;
             }
         }
+
+        PlaceSeed();
+    }
+
+    /// <summary>
+    /// Ставит стартовый кружок 2x2 внутри силуэта органа, игрок начинает на нём.
+    /// </summary>
+    private void PlaceSeed()
+    {
+        float cx = 0, cy = 0;
+        var count = 0;
+        for (var x = 1; x < FieldW - 1; x++)
+        {
+            for (var y = 1; y < FieldH - 1; y++)
+            {
+                if (!_silhouette[x, y])
+                    continue;
+                cx += x;
+                cy += y;
+                count++;
+            }
+        }
+
+        if (count > 0)
+        {
+            cx /= count;
+            cy /= count;
+        }
+
+        (int X, int Y)? best = null;
+        var bestDist = float.MaxValue;
+        for (var x = 1; x < FieldW - 2; x++)
+        {
+            for (var y = 1; y < FieldH - 2; y++)
+            {
+                if (!_silhouette[x, y] || !_silhouette[x + 1, y] || !_silhouette[x, y + 1] || !_silhouette[x + 1, y + 1])
+                    continue;
+
+                var d = (x + 1 - cx) * (x + 1 - cx) + (y + 1 - cy) * (y + 1 - cy);
+                if (d < bestDist)
+                {
+                    bestDist = d;
+                    best = (x, y);
+                }
+            }
+        }
+
+        _seed = best ?? (Math.Clamp((int) cx, 1, FieldW - 3), Math.Clamp((int) cy, 1, FieldH - 3));
+
+        for (var x = _seed.X; x < _seed.X + 2; x++)
+        {
+            for (var y = _seed.Y; y < _seed.Y + 2; y++)
+                _cells[x, y] = Cell.Filled;
+        }
+
+        _player = (_seed.X, _seed.Y);
+        _respawn = _player;
+        _playerFrom = _player;
     }
 
     public void Start(EntProtoId product, bool fastMode)
@@ -160,6 +238,7 @@ public sealed class SplicingGameControl : Control
         _won = false;
         _integrity = 100f;
         _coverage = 0f;
+        _waste = 0;
         _invuln = 0f;
         _lastFrame = _timing.RealTime;
 
@@ -177,23 +256,23 @@ public sealed class SplicingGameControl : Control
 
     private void ResetField()
     {
-        _player = (FieldW / 2, 0);
+        _player = (FieldW / 2, FieldH / 2);
         _respawn = _player;
         _playerFrom = _player;
         _dir = Direction.Right;
         _drawing = false;
         _stepAccum = 0f;
         _trail.Clear();
+        _rivalTrail.Clear();
         _necrosis.Clear();
         _glitches.Clear();
+        _rival = new Rival { X = FieldW / 2 + 8, Y = 0, Dir = Direction.Left };
 
         for (var x = 0; x < FieldW; x++)
         {
             for (var y = 0; y < FieldH; y++)
             {
-                _cells[x, y] = x == 0 || y == 0 || x == FieldW - 1 || y == FieldH - 1
-                    ? Cell.Filled
-                    : Cell.Empty;
+                _cells[x, y] = IsBorder(x, y) ? Cell.Wall : Cell.Empty;
             }
         }
     }
@@ -232,9 +311,7 @@ public sealed class SplicingGameControl : Control
 
     private Direction DesiredDir => _held.Count > 0 ? _held[0] : Direction.None;
 
-    private bool HasInputControl =>
-        UserInterfaceManager.KeyboardFocused == this ||
-        (UserInterfaceManager.KeyboardFocused == null && UserInterfaceManager.CurrentlyHovered == this);
+    private bool IsBorder(int x, int y) => x == 0 || y == 0 || x == FieldW - 1 || y == FieldH - 1;
 
     protected override void Draw(DrawingHandleScreen handle)
     {
@@ -250,12 +327,6 @@ public sealed class SplicingGameControl : Control
 
     private void Tick(float dt)
     {
-        if (!HasInputControl)
-        {
-            _stepAccum = 0f;
-            return;
-        }
-
         if (_invuln > 0f)
             _invuln -= dt;
 
@@ -265,6 +336,15 @@ public sealed class SplicingGameControl : Control
         {
             _stepAccum -= stepInterval;
             StepPlayer();
+            if (!_running)
+                return;
+        }
+
+        _rival.StepTimer -= dt;
+        while (_rival.StepTimer <= 0)
+        {
+            _rival.StepTimer += 0.11;
+            StepRival();
             if (!_running)
                 return;
         }
@@ -312,6 +392,12 @@ public sealed class SplicingGameControl : Control
 
         var target = _cells[nx, ny];
 
+        if (target == Cell.Wall)
+        {
+            Fail();
+            return;
+        }
+
         if (target == Cell.Filled)
         {
             if (_drawing)
@@ -324,7 +410,7 @@ public sealed class SplicingGameControl : Control
         {
             _drawing = true;
             _trail.Clear();
-            _trail.Add(_player);
+            _trail.Add((_player.X, _player.Y, Cell.Filled));
         }
 
         if (target == Cell.Trail)
@@ -332,7 +418,7 @@ public sealed class SplicingGameControl : Control
             if (_trail.Count >= 2 && _trail[^2].X == nx && _trail[^2].Y == ny)
             {
                 var last = _trail[^1];
-                _cells[last.X, last.Y] = Cell.Empty;
+                _cells[last.X, last.Y] = last.Under;
                 _trail.RemoveAt(_trail.Count - 1);
                 MoveTo(nx, ny);
 
@@ -349,8 +435,9 @@ public sealed class SplicingGameControl : Control
             return;
         }
 
+        // линия проходит и по пустоте, и по территории соперника
         _cells[nx, ny] = Cell.Trail;
-        _trail.Add((nx, ny));
+        _trail.Add((nx, ny, target));
         MoveTo(nx, ny);
     }
 
@@ -370,13 +457,20 @@ public sealed class SplicingGameControl : Control
 
     private void CloseCapture()
     {
-        foreach (var (x, y) in _trail)
+        var captured = new List<(int X, int Y)>();
+        foreach (var (x, y, _) in _trail)
+        {
             _cells[x, y] = Cell.Filled;
+            captured.Add((x, y));
+        }
+
         _trail.Clear();
         _drawing = false;
         _playerFrom = _player;
 
-        FloodFillCapture();
+        captured.AddRange(FloodFillCapture());
+        BiteRival(captured);
+        ConvertCutOffRival();
 
         _necrosis.RemoveAll(n => _cells[(int) n.X, (int) n.Y] != Cell.Empty);
 
@@ -398,7 +492,50 @@ public sealed class SplicingGameControl : Control
             Win();
     }
 
-    private void FloodFillCapture()
+    /// <summary>
+    /// Пустые клетки, недостижимые ни для одного некроза, становятся тканью игрока.
+    /// Возвращает список захваченных клеток.
+    /// </summary>
+    private List<(int X, int Y)> FloodFillCapture()
+    {
+        var captured = new List<(int X, int Y)>();
+        var reach = FloodFromNecrosis();
+
+        for (var x = 1; x < FieldW - 1; x++)
+        {
+            for (var y = 1; y < FieldH - 1; y++)
+            {
+                if (_cells[x, y] == Cell.Empty && !reach[x, y])
+                {
+                    _cells[x, y] = Cell.Filled;
+                    captured.Add((x, y));
+                }
+            }
+        }
+
+        return captured;
+    }
+
+    /// <summary>
+    /// Клетки ткани соперника, прилегающие к свежему захвату, переходят игроку.
+    /// </summary>
+    private void BiteRival(List<(int X, int Y)> captured)
+    {
+        foreach (var (x, y) in captured)
+        {
+            foreach (var (nx, ny) in new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) })
+            {
+                if (nx < 0 || ny < 0 || nx >= FieldW || ny >= FieldH)
+                    continue;
+
+                var cell = _cells[nx, ny];
+                if (cell is Cell.Rival or Cell.RivalTrail)
+                    _cells[nx, ny] = Cell.Filled;
+            }
+        }
+    }
+
+    private bool[,] FloodFromNecrosis()
     {
         var reach = new bool[FieldW, FieldH];
         var queue = new Queue<(int X, int Y)>();
@@ -423,14 +560,7 @@ public sealed class SplicingGameControl : Control
             Spread(reach, queue, x, y - 1);
         }
 
-        for (var x = 1; x < FieldW - 1; x++)
-        {
-            for (var y = 1; y < FieldH - 1; y++)
-            {
-                if (_cells[x, y] == Cell.Empty && !reach[x, y])
-                    _cells[x, y] = Cell.Filled;
-            }
-        }
+        return reach;
     }
 
     private void Spread(bool[,] reach, Queue<(int X, int Y)> queue, int x, int y)
@@ -441,6 +571,57 @@ public sealed class SplicingGameControl : Control
             return;
         reach[x, y] = true;
         queue.Enqueue((x, y));
+    }
+
+    /// <summary>
+    /// Отрезанные от пустого пространства скопления ткани соперника переходят игроку.
+    /// </summary>
+    private void ConvertCutOffRival()
+    {
+        var visited = new bool[FieldW, FieldH];
+
+        for (var x = 1; x < FieldW - 1; x++)
+        {
+            for (var y = 1; y < FieldH - 1; y++)
+            {
+                if (_cells[x, y] != Cell.Rival || visited[x, y])
+                    continue;
+
+                var component = new List<(int X, int Y)>();
+                var queue = new Queue<(int X, int Y)>();
+                queue.Enqueue((x, y));
+                visited[x, y] = true;
+                var touchesEmpty = false;
+
+                while (queue.Count > 0)
+                {
+                    var (cx, cy) = queue.Dequeue();
+                    component.Add((cx, cy));
+
+                    foreach (var (nx, ny) in new[]
+                             {
+                                 (cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)
+                             })
+                    {
+                        if (nx < 0 || ny < 0 || nx >= FieldW || ny >= FieldH)
+                            continue;
+                        if (_cells[nx, ny] == Cell.Empty)
+                            touchesEmpty = true;
+                        if (_cells[nx, ny] == Cell.Rival && !visited[nx, ny])
+                        {
+                            visited[nx, ny] = true;
+                            queue.Enqueue((nx, ny));
+                        }
+                    }
+                }
+
+                if (!touchesEmpty)
+                {
+                    foreach (var (cx, cy) in component)
+                        _cells[cx, cy] = Cell.Filled;
+                }
+            }
+        }
     }
 
     private void Win()
@@ -454,7 +635,220 @@ public sealed class SplicingGameControl : Control
         var quality = (int) Math.Clamp(baseQuality + coverageBonus + _integrity * 0.1f, 0, _fastMode ? 65 : 100);
 
         _audio.PlayGlobal("/Audio/Effects/Arcade/newgame.ogg", Filter.Local(), false, AudioParams.Default.WithVolume(-4f));
-        OnFinished?.Invoke(true, quality);
+        OnFinished?.Invoke(true, quality, _waste);
+    }
+
+    #endregion
+
+    #region Соперник
+
+    private void StepRival()
+    {
+        if (!_rival.Diving)
+        {
+            if (_rival.Y > 0)
+            {
+                _rival.Y--;
+                return;
+            }
+
+            _rival.DiveTimer -= 0.11;
+            if (_rival.DiveTimer <= 0 && TryStartDive())
+                return;
+
+            if (_rival.Dir != Direction.Left && _rival.Dir != Direction.Right)
+                _rival.Dir = Direction.Right;
+
+            var nx = _rival.X + (_rival.Dir == Direction.Right ? 1 : -1);
+            if (nx < 1 || nx > FieldW - 2)
+                _rival.Dir = _rival.Dir == Direction.Right ? Direction.Left : Direction.Right;
+
+            _rival.X += _rival.Dir == Direction.Right ? 1 : -1;
+            return;
+        }
+
+        if (_rival.PathIndex >= _rival.Path.Count)
+        {
+            FinishRivalDive();
+            return;
+        }
+
+        var (cx, cy, mark) = _rival.Path[_rival.PathIndex++];
+        var cell = _cells[cx, cy];
+
+        if (mark && cell is Cell.Trail or Cell.Wall)
+        {
+            AbortRivalDive();
+            return;
+        }
+
+        if (mark && cell == Cell.Empty)
+        {
+            _cells[cx, cy] = Cell.RivalTrail;
+            _rivalTrail.Add((cx, cy));
+        }
+
+        _rival.X = cx;
+        _rival.Y = cy;
+    }
+
+    private bool TryStartDive()
+    {
+        (int X, int Y)? target = null;
+
+        if (_random.Next(10) < 7)
+        {
+            var free = new List<(int X, int Y)>();
+            for (var x = 1; x < FieldW - 1; x++)
+            {
+                for (var y = 1; y < FieldH - 1; y++)
+                {
+                    if (_silhouette[x, y] && _cells[x, y] == Cell.Empty)
+                        free.Add((x, y));
+                }
+            }
+
+            if (free.Count > 0)
+                target = free[_random.Next(free.Count)];
+        }
+
+        if (target == null)
+        {
+            var tries = 0;
+            while (tries++ < 50)
+            {
+                var x = _random.Next(1, FieldW - 1);
+                var y = _random.Next(1, FieldH - 1);
+                if (_cells[x, y] == Cell.Empty)
+                {
+                    target = (x, y);
+                    break;
+                }
+            }
+        }
+
+        if (target == null)
+            return false;
+
+        var (sx, sy) = target.Value;
+        var x1 = Math.Clamp(sx - _random.Next(1, 3), 1, FieldW - 2);
+        var x2 = Math.Clamp(sx + _random.Next(1, 3), x1 + 1, FieldW - 2);
+        var y1 = Math.Clamp(sy - _random.Next(1, 3), 1, FieldH - 2);
+        var y2 = Math.Clamp(sy + _random.Next(1, 3), y1 + 1, FieldH - 2);
+
+        if (sx <= x1 || sx >= x2 || sy <= y1 || sy >= y2)
+            return false;
+
+        var path = new List<(int X, int Y, bool Mark)>();
+
+        for (var x = _rival.X; x != x1; x += x1 > _rival.X ? 1 : -1)
+            path.Add((x, 0, false));
+        path.Add((x1, 0, false));
+
+        for (var y = 1; y <= y1; y++)
+            path.Add((x1, y, true));
+        for (var x = x1 + 1; x <= x2; x++)
+            path.Add((x, y1, true));
+        for (var y = y1 + 1; y <= y2; y++)
+            path.Add((x2, y, true));
+        for (var x = x2 - 1; x >= x1; x--)
+            path.Add((x, y2, true));
+        for (var y = y2 - 1; y >= 0; y--)
+            path.Add((x1, y, y > 0));
+
+        foreach (var (px, py, mark) in path)
+        {
+            if (!mark || IsBorder(px, py))
+                continue;
+            if (_cells[px, py] is Cell.Trail or Cell.Wall)
+                return false;
+        }
+
+        _rival.Path = path;
+        _rival.PathIndex = 0;
+        _rival.Diving = true;
+        return true;
+    }
+
+    private void FinishRivalDive()
+    {
+        foreach (var (x, y) in _rivalTrail)
+        {
+            if (_cells[x, y] == Cell.RivalTrail)
+                _cells[x, y] = Cell.Rival;
+        }
+
+        _rivalTrail.Clear();
+
+        var reach = FloodFromNecrosis();
+        for (var x = 1; x < FieldW - 1; x++)
+        {
+            for (var y = 1; y < FieldH - 1; y++)
+            {
+                if (_cells[x, y] == Cell.Empty && !reach[x, y])
+                    _cells[x, y] = Cell.Rival;
+            }
+        }
+
+        foreach (var n in _necrosis)
+        {
+            var cx = (int) Math.Clamp(n.X, 0, FieldW - 1);
+            var cy = (int) Math.Clamp(n.Y, 0, FieldH - 1);
+            if (_cells[cx, cy] != Cell.Empty)
+                RelocateNecrosis(n);
+        }
+
+        _rival.Diving = false;
+        _rival.DiveTimer = 3.5 + _random.NextDouble() * 3.0;
+        RecomputeCoverage();
+        EmitStats();
+    }
+
+    private void AbortRivalDive()
+    {
+        if (!_rival.Diving && _rivalTrail.Count == 0)
+            return;
+
+        foreach (var (x, y) in _rivalTrail)
+        {
+            if (_cells[x, y] != Cell.RivalTrail)
+                continue;
+
+            var sealedCell = true;
+            foreach (var (nx, ny) in new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) })
+            {
+                if (nx < 0 || ny < 0 || nx >= FieldW || ny >= FieldH)
+                    continue;
+
+                var cell = _cells[nx, ny];
+                if (cell is Cell.Empty or Cell.RivalTrail)
+                {
+                    sealedCell = false;
+                    break;
+                }
+            }
+
+            _cells[x, y] = sealedCell ? Cell.Filled : Cell.Empty;
+        }
+
+        _rivalTrail.Clear();
+        _rival.Diving = false;
+        _rival.DiveTimer = Math.Max(_rival.DiveTimer, 2.0);
+    }
+
+    private void RelocateNecrosis(Necrosis n)
+    {
+        for (var tries = 0; tries < 100; tries++)
+        {
+            var x = _random.Next(1, FieldW - 1);
+            var y = _random.Next(1, FieldH - 1);
+            if (_cells[x, y] != Cell.Empty)
+                continue;
+
+            n.X = x + 0.5f;
+            n.Y = y + 0.5f;
+            return;
+        }
     }
 
     #endregion
@@ -498,19 +892,19 @@ public sealed class SplicingGameControl : Control
         var r = 0.34f;
 
         var newX = n.X + n.VX * n.Speed * dt;
-        if (CircleHitsFilled(newX, n.Y, r))
+        if (CircleHitsSolid(newX, n.Y, r))
             n.VX = -n.VX;
         else
             n.X = newX;
 
         var newY = n.Y + n.VY * n.Speed * dt;
-        if (CircleHitsFilled(n.X, newY, r))
+        if (CircleHitsSolid(n.X, newY, r))
             n.VY = -n.VY;
         else
             n.Y = newY;
     }
 
-    private bool CircleHitsFilled(float x, float y, float r)
+    private bool CircleHitsSolid(float x, float y, float r)
     {
         var minX = (int) MathF.Floor(x - r);
         var maxX = (int) MathF.Floor(x + r);
@@ -523,8 +917,12 @@ public sealed class SplicingGameControl : Control
             {
                 if (cx < 0 || cy < 0 || cx >= FieldW || cy >= FieldH)
                     continue;
-                if (_cells[cx, cy] != Cell.Empty)
-                    return true;
+
+                var cell = _cells[cx, cy];
+                if (cell == Cell.Empty || cell == Cell.Trail)
+                    continue;
+
+                return true;
             }
         }
 
@@ -539,11 +937,11 @@ public sealed class SplicingGameControl : Control
 
         if (dx * dx + dy * dy < (pr + 0.34f) * (pr + 0.34f))
         {
-            LoseTrail(HitDamage().PlayerHit, false);
+            Fail();
             return true;
         }
 
-        foreach (var (tx, ty) in _trail)
+        foreach (var (tx, ty, _) in _trail)
         {
             var cx = Math.Clamp(n.X, tx, tx + 1);
             var cy = Math.Clamp(n.Y, ty, ty + 1);
@@ -551,7 +949,7 @@ public sealed class SplicingGameControl : Control
             var ey = n.Y - cy;
             if (ex * ex + ey * ey < 0.34f * 0.34f)
             {
-                LoseTrail(HitDamage().TrailHit, false);
+                Fail();
                 return true;
             }
         }
@@ -609,32 +1007,25 @@ public sealed class SplicingGameControl : Control
         if (dx > 0.7f || dy > 0.7f)
             return false;
 
-        LoseTrail(HitDamage().PlayerHit + 6f, true);
-        _invuln = 2f;
-        return true;
-    }
+        _integrity = Math.Max(0f, _integrity - (_fastMode ? 30f : 18f));
 
-    private void LoseTrail(float damage, bool fullRespawn)
-    {
-        _integrity = Math.Max(0f, _integrity - damage);
-
-        var back = fullRespawn || _trail.Count == 0 ? _respawn : _trail[0];
-
-        foreach (var (x, y) in _trail)
-            _cells[x, y] = Cell.Empty;
+        var back = _trail.Count > 0 ? (_trail[0].X, _trail[0].Y) : _respawn;
+        foreach (var (x, y, under) in _trail)
+            _cells[x, y] = under;
         _trail.Clear();
         _drawing = false;
         _dir = Direction.None;
-
         _playerFrom = back;
         _player = back;
-        _invuln = Math.Max(_invuln, 1f);
+        _invuln = 2f;
 
         _audio.PlayGlobal("/Audio/Effects/bite.ogg", Filter.Local(), false, AudioParams.Default.WithVolume(-8f));
         EmitStats();
 
         if (_integrity <= 0f)
             Fail();
+
+        return true;
     }
 
     private void Fail()
@@ -644,17 +1035,15 @@ public sealed class SplicingGameControl : Control
         _won = false;
 
         _audio.PlayGlobal("/Audio/Effects/Arcade/gameover.ogg", Filter.Local(), false, AudioParams.Default.WithVolume(-4f));
-        OnFinished?.Invoke(false, 0);
+        OnFinished?.Invoke(false, 0, 0);
     }
 
     #endregion
 
-    private (float TrailHit, float PlayerHit) HitDamage() => _fastMode ? FastDamage : FineDamage;
-
     private bool IsEdgeCell(int x, int y)
     {
         return _cells[x, y] == Cell.Filled &&
-               (x == 0 || y == 0 || x == FieldW - 1 || y == FieldH - 1 ||
+               (IsBorder(x, y) ||
                 _cells[x + 1, y] != Cell.Filled || _cells[x - 1, y] != Cell.Filled ||
                 _cells[x, y + 1] != Cell.Filled || _cells[x, y - 1] != Cell.Filled);
     }
@@ -675,12 +1064,18 @@ public sealed class SplicingGameControl : Control
     private void RecomputeCoverage()
     {
         _silhouetteFilled = 0;
+        _waste = 0;
         for (var x = 1; x < FieldW - 1; x++)
         {
             for (var y = 1; y < FieldH - 1; y++)
             {
-                if (_silhouette[x, y] && _cells[x, y] == Cell.Filled)
+                if (_cells[x, y] != Cell.Filled)
+                    continue;
+
+                if (_silhouette[x, y])
                     _silhouetteFilled++;
+                else
+                    _waste++;
             }
         }
 
@@ -689,7 +1084,7 @@ public sealed class SplicingGameControl : Control
 
     private void EmitStats()
     {
-        OnStatsChanged?.Invoke(Coverage, (int) _integrity);
+        OnStatsChanged?.Invoke(Coverage, (int) _integrity, _waste);
     }
 
     private static (int DX, int DY) Delta(Direction dir) => dir switch
@@ -747,30 +1142,49 @@ public sealed class SplicingGameControl : Control
                     origin + new Vector2((x + 1) * CellPx, (y + 1) * CellPx));
                 var cell = _cells[x, y];
 
-                if (cell == Cell.Filled)
+                if (cell == Cell.Wall)
                 {
+                    handle.DrawRect(rect, Color.FromHex("#26221f"));
+                    handle.DrawRect(new UIBox2(rect.Left, rect.Top, rect.Right, rect.Top + 1), Color.FromHex("#6b2020"));
+                    handle.DrawRect(new UIBox2(rect.Left, rect.Bottom - 1, rect.Right, rect.Bottom), Color.FromHex("#6b2020"));
+                    handle.DrawRect(new UIBox2(rect.Left, rect.Top, rect.Left + 1, rect.Bottom), Color.FromHex("#6b2020"));
+                    handle.DrawRect(new UIBox2(rect.Right - 1, rect.Top, rect.Right, rect.Bottom), Color.FromHex("#6b2020"));
+                    continue;
+                }
+
+                if (cell is Cell.Filled or Cell.Rival)
+                {
+                    var rival = cell == Cell.Rival;
                     var shade = (x * 7 + y * 13) % 3;
-                    var color = shade switch
-                    {
-                        0 => Color.FromHex("#7e4040"),
-                        1 => Color.FromHex("#743a3a"),
-                        _ => Color.FromHex("#874747"),
-                    };
+                    var color = rival
+                        ? shade switch
+                        {
+                            0 => Color.FromHex("#6b3d7a"),
+                            1 => Color.FromHex("#623770"),
+                            _ => Color.FromHex("#754285"),
+                        }
+                        : shade switch
+                        {
+                            0 => Color.FromHex("#7e4040"),
+                            1 => Color.FromHex("#743a3a"),
+                            _ => Color.FromHex("#874747"),
+                        };
                     handle.DrawRect(rect, color);
 
-                    if (x == 0 || y == 0 || x == FieldW - 1 || y == FieldH - 1 ||
+                    if (IsBorder(x, y) ||
                         _cells[x + 1, y] == Cell.Empty || _cells[x - 1, y] == Cell.Empty ||
                         _cells[x, y + 1] == Cell.Empty || _cells[x, y - 1] == Cell.Empty)
-                        handle.DrawRect(rect, Color.FromHex("#a85b5b").WithAlpha(0.55f));
+                        handle.DrawRect(rect, (rival ? Color.FromHex("#8f5aa3") : Color.FromHex("#a85b5b")).WithAlpha(0.55f));
 
                     continue;
                 }
 
-                if (cell == Cell.Trail)
+                if (cell is Cell.Trail or Cell.RivalTrail)
                 {
-                    handle.DrawRect(rect, Color.FromHex("#d8ff5f").WithAlpha(0.75f));
+                    var rival = cell == Cell.RivalTrail;
+                    handle.DrawRect(rect, (rival ? Color.FromHex("#c084fc") : Color.FromHex("#d8ff5f")).WithAlpha(0.75f));
                     handle.DrawRect(new UIBox2(rect.Left + 3, rect.Top + 3, rect.Right - 3, rect.Bottom - 3),
-                        Color.FromHex("#f4ffd9"));
+                        rival ? Color.FromHex("#f3e8ff") : Color.FromHex("#f4ffd9"));
                     continue;
                 }
 
@@ -789,6 +1203,13 @@ public sealed class SplicingGameControl : Control
             }
         }
 
+        var seedCenter = origin + new Vector2(_seed.X + 1f, _seed.Y + 1f) * CellPx;
+        var seedPulse = 1f + MathF.Sin(time * 4f) * 0.1f;
+        handle.DrawCircle(seedCenter, 9.5f * seedPulse, Color.FromHex("#3ed26b").WithAlpha(0.22f));
+        handle.DrawCircle(seedCenter, 6.5f * seedPulse, Color.FromHex("#3ed26b").WithAlpha(0.6f));
+        handle.DrawCircle(seedCenter, 4f, Color.FromHex("#0b1f10"));
+        handle.DrawCircle(seedCenter, 2.2f, Color.FromHex("#7dffb0"));
+
         if (_trail.Count > 1)
         {
             for (var i = 1; i < _trail.Count; i++)
@@ -798,7 +1219,6 @@ public sealed class SplicingGameControl : Control
                 handle.DrawLine(a, b, Color.FromHex("#d8ff5f"));
             }
         }
-
         foreach (var n in _necrosis)
         {
             var pos = origin + new Vector2(n.X, n.Y) * CellPx;
@@ -816,6 +1236,11 @@ public sealed class SplicingGameControl : Control
                 Color.FromHex("#cfebff"));
         }
 
+        var rp = origin + new Vector2(_rival.X + 0.5f, _rival.Y + 0.5f) * CellPx;
+        handle.DrawCircle(rp, 6f, Color.FromHex("#a855f7").WithAlpha(0.3f));
+        handle.DrawCircle(rp, 4f, Color.FromHex("#a855f7"));
+        handle.DrawCircle(rp, 1.8f, Color.FromHex("#2a0a3a"));
+
         var stepInterval = _fastMode ? 0.085f : 0.15f;
         var progress = _running ? Math.Clamp(_stepAccum / stepInterval, 0f, 1f) : 1f;
         var lerped = new Vector2(
@@ -824,19 +1249,10 @@ public sealed class SplicingGameControl : Control
         var playerPos = origin + lerped * CellPx;
 
         var glow = _fastMode ? Color.FromHex("#ffb13b") : Color.FromHex("#4fe3ff");
-        var blink = _invuln > 0f && MathF.Sin(time * 20f) > 0f;
-        if (!blink)
-        {
-            handle.DrawCircle(playerPos, 7f, glow.WithAlpha(0.3f));
-            handle.DrawCircle(playerPos, 4.5f, glow);
-            handle.DrawCircle(playerPos, 2f, Color.White);
-        }
-
-        if (_running && !_finished && !HasInputControl)
-        {
-            handle.DrawRect(new UIBox2(origin, origin + new Vector2(FieldW * CellPx, FieldH * CellPx)),
-                Color.Black.WithAlpha(0.55f));
-        }
+        var blinkAlpha = _invuln > 0f && MathF.Sin(time * 20f) > 0f ? 0.35f : 1f;
+        handle.DrawCircle(playerPos, 7f, glow.WithAlpha(0.3f * blinkAlpha));
+        handle.DrawCircle(playerPos, 4.5f, glow.WithAlpha(blinkAlpha));
+        handle.DrawCircle(playerPos, 2f, Color.White.WithAlpha(blinkAlpha));
     }
 
     #endregion
