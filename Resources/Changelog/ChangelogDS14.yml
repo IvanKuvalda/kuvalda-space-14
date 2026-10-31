@@ -9379,3 +9379,10 @@ Entries:
   changes:
   - type: Add
     message: Супер крутое казино в супер крутые игры кпк
+- id: 900
+  author: BlueDogDoc
+  time: '2026-10-31T09:42:38.193674+00:00'
+  pr: 2605
+  changes:
+  - type: Add
+    message: Логгирование управления шаттлов
