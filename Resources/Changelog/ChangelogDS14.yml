@@ -9386,3 +9386,10 @@ Entries:
   changes:
   - type: Add
     message: Логгирование управления шаттлов
+- id: 901
+  author: BlueDogDoc
+  time: '2026-10-31T10:01:22.614525+00:00'
+  pr: 2607
+  changes:
+  - type: Add
+    message: Сумка для жнецов
