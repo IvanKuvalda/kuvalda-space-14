@@ -32,6 +32,16 @@
       cost: 10
     - product: OrganHumanBrain
       cost: 50
+    - product: OrganAnimalHeart
+      cost: 30
+    - product: OrganAnimalLiver
+      cost: 25
+    - product: OrganTajaranStomach
+      cost: 20
+    - product: OrganReptilianStomach
+      cost: 20
+    - product: OrganVulpkaninStomach
+      cost: 20
   - type: MaterialStorage
     materialWhiteList:
     - Biomass

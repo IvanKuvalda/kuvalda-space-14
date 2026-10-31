@@ -430,7 +430,7 @@ public sealed class SplicingGameControl : Control
             }
             else
             {
-                Settle();
+                Fail();
             }
             return;
         }
@@ -457,19 +457,13 @@ public sealed class SplicingGameControl : Control
 
     private void CloseCapture()
     {
-        var captured = new List<(int X, int Y)>();
         foreach (var (x, y, _) in _trail)
-        {
             _cells[x, y] = Cell.Filled;
-            captured.Add((x, y));
-        }
-
         _trail.Clear();
         _drawing = false;
         _playerFrom = _player;
 
-        captured.AddRange(FloodFillCapture());
-        BiteRival(captured);
+        FloodFillCapture();
         ConvertCutOffRival();
 
         _necrosis.RemoveAll(n => _cells[(int) n.X, (int) n.Y] != Cell.Empty);
@@ -494,11 +488,9 @@ public sealed class SplicingGameControl : Control
 
     /// <summary>
     /// Пустые клетки, недостижимые ни для одного некроза, становятся тканью игрока.
-    /// Возвращает список захваченных клеток.
     /// </summary>
-    private List<(int X, int Y)> FloodFillCapture()
+    private void FloodFillCapture()
     {
-        var captured = new List<(int X, int Y)>();
         var reach = FloodFromNecrosis();
 
         for (var x = 1; x < FieldW - 1; x++)
@@ -506,31 +498,7 @@ public sealed class SplicingGameControl : Control
             for (var y = 1; y < FieldH - 1; y++)
             {
                 if (_cells[x, y] == Cell.Empty && !reach[x, y])
-                {
                     _cells[x, y] = Cell.Filled;
-                    captured.Add((x, y));
-                }
-            }
-        }
-
-        return captured;
-    }
-
-    /// <summary>
-    /// Клетки ткани соперника, прилегающие к свежему захвату, переходят игроку.
-    /// </summary>
-    private void BiteRival(List<(int X, int Y)> captured)
-    {
-        foreach (var (x, y) in captured)
-        {
-            foreach (var (nx, ny) in new[] { (x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1) })
-            {
-                if (nx < 0 || ny < 0 || nx >= FieldW || ny >= FieldH)
-                    continue;
-
-                var cell = _cells[nx, ny];
-                if (cell is Cell.Rival or Cell.RivalTrail)
-                    _cells[nx, ny] = Cell.Filled;
             }
         }
     }
@@ -857,20 +825,40 @@ public sealed class SplicingGameControl : Control
 
     private void SpawnNecrosis(int count)
     {
+        (float X, float Y)? anchor = null;
+
         for (var i = 0; i < count && _necrosis.Count < MaxNecrosis; i++)
         {
             var tries = 0;
             while (tries++ < 100)
             {
-                var x = _random.Next(2, FieldW - 2);
-                var y = _random.Next(2, FieldH - 2);
-                if (_cells[x, y] != Cell.Empty)
-                    continue;
+                float x, y;
 
-                var nx = _player.X - x;
-                var ny = _player.Y - y;
-                if (nx * nx + ny * ny < 100)
-                    continue;
+                if (anchor == null)
+                {
+                    x = _random.Next(2, FieldW - 2);
+                    y = _random.Next(2, FieldH - 2);
+                    if (_cells[(int) x, (int) y] != Cell.Empty)
+                        continue;
+
+                    var px = _player.X - x;
+                    var py = _player.Y - y;
+                    if (px * px + py * py < 100)
+                        continue;
+                }
+                else
+                {
+                    x = anchor.Value.X + _random.Next(-2, 3);
+                    y = anchor.Value.Y + _random.Next(-2, 3);
+                    if (x < 1 || y < 1 || x >= FieldW - 1 || y >= FieldH - 1)
+                        continue;
+                    if (_cells[(int) x, (int) y] != Cell.Empty)
+                        continue;
+
+                    var d = Math.Max(Math.Abs(x - anchor.Value.X), Math.Abs(y - anchor.Value.Y));
+                    if (d < 1 || d > 2)
+                        continue;
+                }
 
                 var angle = (float) (_random.NextDouble() * Math.PI * 2);
                 _necrosis.Add(new Necrosis
@@ -882,6 +870,7 @@ public sealed class SplicingGameControl : Control
                     VX = MathF.Sin(angle),
                     VY = MathF.Cos(angle),
                 });
+                anchor = (x, y);
                 break;
             }
         }
