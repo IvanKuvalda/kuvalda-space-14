@@ -63,11 +63,20 @@ public sealed partial class ShuttleSystem
     private readonly List<Entity<PhysicsComponent>> _gridThrowEntities = new();
     private readonly HashSet<EntityUid> _gridThrowProcessed = new();
     private readonly List<ImpactTileData> _impactTiles = new();
+    private readonly List<ImpactRegionTile> _ourRegionTiles = new(); // DS14
+    private readonly List<ImpactRegionTile> _otherRegionTiles = new(); // DS14
     private readonly List<(Vector2i, Tile)> _brokenImpactTiles = new();
     private readonly List<Vector2i> _sparkImpactTiles = new();
     private readonly HashSet<Entity<TransformComponent>> _entitiesOnImpactTile = new();
     // for _adminLogSpacing
     private Dictionary<EntityUid, TimeSpan> _impactedAt = new();
+
+    // DS14-start
+    private static readonly TimeSpan ImpactPairCooldown = TimeSpan.FromMilliseconds(250);
+
+    private readonly Dictionary<(EntityUid, EntityUid), TimeSpan> _impactPairAt = new();
+    private readonly List<(EntityUid, EntityUid)> _expiredImpactPairs = new();
+    // DS14-end
 
     private void InitializeImpact()
     {
@@ -123,6 +132,11 @@ public sealed partial class ShuttleSystem
         if (IsDockImpactSuppressed(args.OurEntity, args.OtherEntity))
             return;
 
+        // DS14-start
+        if (!TryConsumeImpact(args.OurEntity, args.OtherEntity))
+            return;
+        // DS14-end
+
         var ourBody = args.OurBody;
         var otherBody = args.OtherBody;
 
@@ -131,6 +145,8 @@ public sealed partial class ShuttleSystem
         var otherXform = Transform(args.OtherEntity);
         var worldPoints = args.WorldPoints;
         var worldNormal = args.WorldNormal;
+        var loudestVolume = float.NegativeInfinity; // DS14
+        EntityCoordinates? soundCoordinates = null; // DS14
 
         for (var i = 0; i < worldPoints.Length; i++)
         {
@@ -164,14 +180,16 @@ public sealed partial class ShuttleSystem
                 continue;
             }
 
-            // Play impact sound
-            var coordinates = new EntityCoordinates(ourXform.MapUid.Value, worldPoint);
-
             var volume = MathF.Min(10f, MathF.Pow(jungleDiff, 0.5f) - 5f);
-            var audioParams = AudioParams.Default.WithVariation(SharedContentAudioSystem.DefaultVariation).WithVolume(volume);
-            _audio.PlayPvs(_shuttleImpactSound, coordinates, audioParams);
 
-            // if we're not enabled, stop after playing sound
+            // DS14-Start
+            if (volume > loudestVolume)
+            {
+                loudestVolume = volume;
+                soundCoordinates = new EntityCoordinates(ourXform.MapUid.Value, worldPoint);
+            }
+
+            // DS14-End
             if (!_enabled)
                 continue;
 
@@ -179,8 +197,8 @@ public sealed partial class ShuttleSystem
             var ourTile = new Vector2i((int)Math.Floor(ourPoint.X / ourGrid.TileSize), (int)Math.Floor(ourPoint.Y / ourGrid.TileSize));
             var otherTile = new Vector2i((int)Math.Floor(otherPoint.X / otherGrid.TileSize), (int)Math.Floor(otherPoint.Y / otherGrid.TileSize));
 
-            var ourMass = GetRegionMass(args.OurEntity, ourGrid, ourTile, _impactRadius, out var ourTiles);
-            var otherMass = GetRegionMass(args.OtherEntity, otherGrid, otherTile, _impactRadius, out var otherTiles);
+            var ourMass = MeasureImpactRegion(args.OurEntity, ourGrid, ourTile, _impactRadius, _ourRegionTiles, out var ourTiles); // DS14
+            var otherMass = MeasureImpactRegion(args.OtherEntity, otherGrid, otherTile, _impactRadius, _otherRegionTiles, out var otherTiles); // DS14
 
             // just in case
             if (ourTiles == 0 || otherTiles == 0)
@@ -215,8 +233,19 @@ public sealed partial class ShuttleSystem
             var totalInertia = ourVelocity * ourMass + otherVelocity * otherMass;
             var inelasticVel = totalInertia / (ourMass + otherMass);
 
-            DoGridImpact((args.OurEntity, ourGrid, ourXform, ourBody), args.OurFixture, inelasticVel, ourVelocity, ourTile, ourTiles, toUsEnergy);
-            DoGridImpact((args.OtherEntity, otherGrid, otherXform, otherBody), args.OtherFixture, inelasticVel, otherVelocity, otherTile, otherTiles, toOtherEnergy);
+            // DS14-Start
+            DoGridImpact((args.OurEntity, ourGrid, ourXform, ourBody), args.OurFixture, inelasticVel, ourVelocity, ourTiles, toUsEnergy, _ourRegionTiles);
+            DoGridImpact((args.OtherEntity, otherGrid, otherXform, otherBody), args.OtherFixture, inelasticVel, otherVelocity, otherTiles, toOtherEnergy, _otherRegionTiles);
+        }
+
+        if (soundCoordinates != null)
+        {
+            var audioParams = AudioParams.Default
+                .WithVariation(SharedContentAudioSystem.DefaultVariation)
+                .WithVolume(loudestVolume);
+
+            _audio.PlayPvs(_shuttleImpactSound, soundCoordinates.Value, audioParams);
+            // DS14-End
         }
     }
 
@@ -224,9 +253,9 @@ public sealed partial class ShuttleSystem
                               Fixture fix,
                               Vector2 inelasticVelocity,
                               Vector2 velocity,
-                              Vector2i tile,
                               int tiles,
-                              float energy)
+                              float energy, // DS14
+                              List<ImpactRegionTile> region) // DS14
     {
         // for readability to not have .Comp1 .Comp2 for everything
         var (_, grid, _, body) = ent;
@@ -247,7 +276,7 @@ public sealed partial class ShuttleSystem
         // DS14-Start: static station grids should take local impact damage without throwing their whole contents.
         var canThrowEntities = body.BodyType != BodyType.Static;
         var impactDirection = deltaVLength > 0f ? deltaV / deltaVLength : Vector2.Zero;
-        ProcessImpactZone(ent, grid, tile, energy, impactDirection, radius, canThrowEntities);
+        ProcessImpactZone(ent, grid, energy, impactDirection, radius, canThrowEntities, region);
 
         // throw every entity on grid if the impulse is not negligible
         if (canThrowEntities && deltaVLength > _minImpulseVelocity)
@@ -320,12 +349,11 @@ public sealed partial class ShuttleSystem
     /// </summary>
     private record struct ImpactTileData(Vector2i Tile, float Energy, float DistanceFactor);
 
-    /// <summary>
-    /// Gets the total mass of all entities and tiles (using ContentTileDefinition.Mass) belonging to this grid in a circle
-    /// </summary>
-    private float GetRegionMass(EntityUid uid, MapGridComponent grid, Vector2i centerTile, float radius, out int tileCount)
+    private readonly record struct ImpactRegionTile(Vector2i Tile, float Distance); // DS14
+
+    private float MeasureImpactRegion(EntityUid uid, MapGridComponent grid, Vector2i centerTile, float radius, List<ImpactRegionTile> region, out int tileCount) // DS14
     {
-        tileCount = 0;
+        region.Clear(); // DS14
         var mass = 0f;
         _countedEnts.Clear();
 
@@ -333,7 +361,7 @@ public sealed partial class ShuttleSystem
         {
             var def = _turf.GetContentTileDefinition(tileRef);
             mass += def.Mass;
-            tileCount++;
+            region.Add(new ImpactRegionTile(tileRef.GridIndices, (tileRef.GridIndices - centerTile).Length)); // DS14
 
             _intersecting.Clear();
             _lookup.GetLocalEntitiesIntersecting(uid, tileRef.GridIndices, _intersecting, gridComp: grid);
@@ -346,27 +374,32 @@ public sealed partial class ShuttleSystem
                     mass += physics.FixturesMass;
             }
         }
+
+        tileCount = region.Count; // DS14
         return mass;
     }
 
     /// <summary>
     /// Processes a zone of tiles around the impact point
     /// </summary>
-    private void ProcessImpactZone(EntityUid uid, MapGridComponent grid, Vector2i centerTile, float energy, Vector2 dir, float radius, bool throwEntities)
+    private void ProcessImpactZone(EntityUid uid, MapGridComponent grid, float energy, Vector2 dir, float radius, bool throwEntities, List<ImpactRegionTile> region) // DS14
     {
         _impactTiles.Clear();
         _brokenImpactTiles.Clear();
         _sparkImpactTiles.Clear();
 
-        // Pre-calculate all tiles that need processing
-        foreach (var tileRef in _mapSystem.GetLocalTilesIntersecting(uid, grid, new Circle(centerTile, radius)))
+        // DS14-Start
+        foreach (var regionTile in region)
         {
-            var distance = centerTile - tileRef.GridIndices;
+            if (regionTile.Distance > radius)
+                continue;
+        // DS14-End
+
             // Calculate distance-based energy falloff
-            float distanceFactor = 1.0f - distance.Length / (radius + 1);
+            float distanceFactor = 1.0f - regionTile.Distance / (radius + 1); // DS14
             float tileEnergy = energy * distanceFactor;
 
-            _impactTiles.Add(new ImpactTileData(tileRef.GridIndices, tileEnergy, distanceFactor));
+            _impactTiles.Add(new ImpactTileData(regionTile.Tile, tileEnergy, distanceFactor)); // DS14
         }
 
         ProcessTileBatch(uid, grid, _impactTiles, dir, 0, _impactTiles.Count, _brokenImpactTiles, _sparkImpactTiles, throwEntities);
@@ -484,6 +517,40 @@ public sealed partial class ShuttleSystem
             Spawn(_sparkEffect, coords);
         }
     }
+
+    // DS14-Start
+    private bool TryConsumeImpact(EntityUid gridA, EntityUid gridB)
+    {
+        var key = GetGridPairKey(gridA, gridB);
+        var now = _gameTiming.CurTime;
+
+        if (_impactPairAt.TryGetValue(key, out var last) && now - last < ImpactPairCooldown)
+            return false;
+
+        _impactPairAt[key] = now;
+
+        if (_impactPairAt.Count > 32)
+            PruneImpactPairs(now);
+
+        return true;
+    }
+
+    private void PruneImpactPairs(TimeSpan now)
+    {
+        _expiredImpactPairs.Clear();
+
+        foreach (var (key, last) in _impactPairAt)
+        {
+            if (now - last >= ImpactPairCooldown)
+                _expiredImpactPairs.Add(key);
+        }
+
+        foreach (var key in _expiredImpactPairs)
+        {
+            _impactPairAt.Remove(key);
+        }
+    }
+    // DS14-End
 
     /// <summary>
     /// Check whether this impact should be logged to admins.
